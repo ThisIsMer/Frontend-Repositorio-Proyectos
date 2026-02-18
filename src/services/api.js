@@ -1,5 +1,8 @@
 import axios from 'axios'
 
+// src/services/api.js
+const BASE_URL = 'https://tu-backend.railway.app/api'; // ← URL de tu backend desplegado
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   headers: {
