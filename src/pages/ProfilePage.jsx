@@ -20,7 +20,8 @@ export default function ProfilePage() {
   const [passwordMsg, setPasswordMsg] = useState({ type: '', text: '' })
 
   useEffect(() => {
-    api.get('/user/projects')
+    // ✅ CORREGIDO: la ruta correcta según el backend es /my-projects
+    api.get('/my-projects')
       .then(res => setProjects(res.data?.data || res.data || []))
       .catch(() => setProjects([]))
       .finally(() => setLoadingProjects(false))
@@ -31,7 +32,8 @@ export default function ProfilePage() {
     setSaving(true)
     setProfileMsg({ type: '', text: '' })
     try {
-      const res = await api.put('/user', form)
+      // ✅ CORREGIDO: la ruta correcta es /profile, no /user
+      const res = await api.put('/profile', form)
       login(res.data.user || res.data, localStorage.getItem('token'))
       setProfileMsg({ type: 'success', text: 'Perfil actualizado correctamente.' })
       setEditMode(false)
@@ -52,7 +54,8 @@ export default function ProfilePage() {
     setSavingPass(true)
     setPasswordMsg({ type: '', text: '' })
     try {
-      await api.put('/user/password', passwordForm)
+      // ✅ CORREGIDO: la ruta correcta es /profile/change-password, no /user/password
+      await api.post('/profile/change-password', passwordForm)
       setPasswordMsg({ type: 'success', text: 'Contraseña actualizada correctamente.' })
       setPasswordForm({ current_password: '', password: '', password_confirmation: '' })
     } catch (err) {
@@ -66,7 +69,8 @@ export default function ProfilePage() {
   const handleDeleteProject = async (id) => {
     if (!window.confirm('¿Eliminar este proyecto? Esta acción no se puede deshacer.')) return
     try {
-      await api.delete(`/projects/${id}`)
+      // ✅ CORREGIDO: eliminación de proyecto va por solicitudes según el backend
+      await api.post(`/requests/delete-project/${id}`)
       setProjects(prev => prev.filter(p => p.id !== id))
     } catch {
       alert('Error al eliminar el proyecto.')
@@ -90,7 +94,6 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
 
-      {/* Header */}
       <div className="bg-slate-900 text-white py-10 px-4">
         <div className="max-w-4xl mx-auto flex items-center gap-5">
           <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-3xl font-bold shrink-0">
@@ -110,10 +113,8 @@ export default function ProfilePage() {
 
       <div className="max-w-4xl mx-auto px-4 py-10 grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-        {/* Sidebar: datos de cuenta */}
         <div className="space-y-5">
 
-          {/* Datos personales */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Mis datos</h2>
@@ -130,12 +131,12 @@ export default function ProfilePage() {
               <form onSubmit={handleProfileSave} className="space-y-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Nombre</label>
-                  <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+                  <input type="text" value={form.name} onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
                     className={inputClass} placeholder="Tu nombre" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Email</label>
-                  <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
+                  <input type="email" value={form.email} onChange={e => setForm(prev => ({ ...prev, email: e.target.value }))}
                     className={inputClass} required />
                 </div>
                 <div className="flex gap-2 pt-1">
@@ -163,7 +164,6 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {/* Cambiar contraseña */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
             <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">Cambiar contraseña</h2>
 
@@ -180,7 +180,7 @@ export default function ProfilePage() {
                 <div key={name}>
                   <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
                   <input type="password" value={passwordForm[name]}
-                    onChange={e => setPasswordForm({ ...passwordForm, [name]: e.target.value })}
+                    onChange={e => setPasswordForm(prev => ({ ...prev, [name]: e.target.value }))}
                     className={inputClass} required />
                   {hint && <p className="text-xs text-gray-400 mt-0.5">{hint}</p>}
                 </div>
@@ -192,14 +192,12 @@ export default function ProfilePage() {
             </form>
           </div>
 
-          {/* Cerrar sesión */}
           <button onClick={handleLogout}
             className="w-full border border-red-200 text-red-500 hover:bg-red-50 py-2 rounded-lg text-sm transition">
             Cerrar sesión
           </button>
         </div>
 
-        {/* Mis proyectos */}
         <div className="lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Mis proyectos</h2>
@@ -213,7 +211,7 @@ export default function ProfilePage() {
             <div className="text-center py-16 text-gray-400 text-sm">Cargando...</div>
           ) : projects.length === 0 ? (
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center">
-              <p className="text-4xl mb-3">📭</p>
+              <p className="text-4xl mb-3">🔭</p>
               <p className="text-gray-500 text-sm mb-4">Todavía no has subido ningún proyecto.</p>
               <Link to="/submit"
                 className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition">
