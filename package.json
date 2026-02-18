@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://thisismer.github.io/Frontend-Repositorio-Proyectos",
+  "homepage": "https://ThisIsMer.github.io/Frontend-Repositorio-Proyectos",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
