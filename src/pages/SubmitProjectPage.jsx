@@ -3,120 +3,135 @@ import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/layout/Navbar'
 import api from '../services/api'
 
-const INITIAL_FORM = {
-  title: '',
-  description: '',
-  long_description: '',
-  subject_id: '',
-  year: new Date().getFullYear(),
-  url: '',
-  github_url: '',
-  tags: '',
-  grade: '',
-}
-
 export default function SubmitProjectPage() {
   const navigate = useNavigate()
-  const [form, setForm] = useState(INITIAL_FORM)
+
   const [subjects, setSubjects] = useState([])
   const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
-  const [success, setSuccess] = useState(false)
+
+  // Estado del formulario — refleja exactamente los campos del backend
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    full_description: '',
+    subject_id: '',
+    year: new Date().getFullYear(),
+    tags: '',           // se convierte a array al enviar
+    collaborators: '',  // se convierte a array al enviar (IDs separados por coma)
+    authorization: false, // ← campo requerido por el backend (accepted)
+  })
 
   useEffect(() => {
-    api.get('/subjects').then(res => setSubjects(res.data)).catch(() => {})
+    api.get('/subjects')
+      .then(r => setSubjects(r.data))
+      .catch(() => setError('No se pudieron cargar las asignaturas'))
   }, [])
 
-  const handleChange = e => {
-    setForm({ ...form, [e.target.name]: e.target.value })
-    setFieldErrors({ ...fieldErrors, [e.target.name]: '' })
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target
+    setForm(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }))
+    // Limpiar error del campo al editarlo
+    if (fieldErrors[name]) {
+      setFieldErrors(prev => ({ ...prev, [name]: null }))
+    }
   }
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setFieldErrors({})
+
+    // Validación frontend básica
+    if (!form.authorization) {
+      setFieldErrors({ authorization: 'Debes aceptar los términos para enviar el proyecto.' })
+      return
+    }
+
     setLoading(true)
 
+    // Construir el payload que espera el backend
     const payload = {
-      ...form,
-      tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-      subject_id: form.subject_id || undefined,
-      grade: form.grade || undefined,
-      url: form.url || undefined,
-      github_url: form.github_url || undefined,
-      long_description: form.long_description || undefined,
+      title: form.title,
+      description: form.description,
+      full_description: form.full_description || undefined,
+      subject_id: form.subject_id,
+      year: form.year ? Number(form.year) : undefined,
+      // Convertir strings separadas por coma en arrays, filtrando vacíos
+      tags: form.tags
+        ? form.tags.split(',').map(t => t.trim()).filter(Boolean)
+        : undefined,
+      collaborators: form.collaborators
+        ? form.collaborators.split(',').map(id => Number(id.trim())).filter(Boolean)
+        : undefined,
+      authorization: true, // siempre true porque el checkbox es required
     }
 
     try {
-      const res = await api.post('/projects', payload)
+      await api.post('/requests/create-project', payload)
       setSuccess(true)
-      setTimeout(() => navigate(`/projects/${res.data.id}`), 1500)
     } catch (err) {
       const errors = err.response?.data?.errors
       if (errors) {
         setFieldErrors(errors)
-        setError('Revisa los campos marcados en rojo.')
+        setError('Corrige los errores del formulario antes de enviar.')
       } else {
-        setError(err.response?.data?.message || 'Error al crear el proyecto. Inténtalo de nuevo.')
+        setError(err.response?.data?.message || 'Error al enviar la solicitud.')
       }
     } finally {
       setLoading(false)
     }
   }
 
+  // Pantalla de éxito
   if (success) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <div className="flex items-center justify-center py-40">
-          <div className="text-center">
-            <p className="text-6xl mb-4">🎉</p>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Proyecto publicado!</h2>
-            <p className="text-gray-500 text-sm">Redirigiendo al proyecto...</p>
+        <div className="max-w-lg mx-auto mt-24 bg-white p-10 rounded-xl shadow border border-gray-200 text-center">
+          <div className="text-5xl mb-4">✅</div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Solicitud enviada!</h2>
+          <p className="text-gray-500 text-sm mb-6">
+            Tu proyecto ha sido enviado para revisión. Un administrador lo aprobará próximamente.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => navigate('/')}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition"
+            >
+              Volver al inicio
+            </button>
+            <button
+              onClick={() => { setSuccess(false); setForm({ title: '', description: '', full_description: '', subject_id: '', year: new Date().getFullYear(), tags: '', collaborators: '', authorization: false }) }}
+              className="border border-gray-300 hover:bg-gray-50 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition"
+            >
+              Enviar otro proyecto
+            </button>
           </div>
         </div>
       </div>
     )
   }
 
-  const Field = ({ label, name, type = 'text', required = false, hint, children }) => (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
-      {children}
-      {hint && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
-      {fieldErrors[name] && (
-        <p className="text-xs text-red-500 mt-1">{Array.isArray(fieldErrors[name]) ? fieldErrors[name][0] : fieldErrors[name]}</p>
-      )}
-    </div>
-  )
-
-  const inputClass = name =>
-    `w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition ${
-      fieldErrors[name] ? 'border-red-400 bg-red-50' : 'border-gray-300'
-    }`
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
 
-      {/* Header */}
-      <div className="bg-slate-900 text-white py-10 px-4">
-        <div className="max-w-2xl mx-auto">
-          <h1 className="text-3xl font-bold mb-1">Subir Proyecto</h1>
-          <p className="text-slate-400 text-sm">Comparte tu trabajo con el resto de la comunidad</p>
-        </div>
-      </div>
-
-      {/* Formulario */}
       <div className="max-w-2xl mx-auto px-4 py-10">
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
+        <div className="bg-white rounded-xl shadow border border-gray-200 p-8">
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Subir Proyecto</h1>
+          <p className="text-sm text-gray-500 mb-6">
+            Completa el formulario. Tu solicitud será revisada por un administrador antes de publicarse.
+          </p>
 
+          {/* Error general */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 text-sm">
+            <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg mb-5 text-sm">
               {error}
             </div>
           )}
@@ -124,137 +139,158 @@ export default function SubmitProjectPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
 
             {/* Título */}
-            <Field label="Título del proyecto" name="title" required>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Título <span className="text-red-500">*</span>
+              </label>
               <input
                 type="text"
                 name="title"
                 value={form.title}
                 onChange={handleChange}
-                placeholder="Ej: Aplicación de gestión de tareas"
-                className={inputClass('title')}
+                maxLength={255}
                 required
+                placeholder="Ej: Aplicación de gestión de tareas"
+                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${fieldErrors.title ? 'border-red-400' : 'border-gray-300'}`}
               />
-            </Field>
+              {fieldErrors.title && <p className="text-red-500 text-xs mt-1">{fieldErrors.title}</p>}
+            </div>
 
             {/* Descripción corta */}
-            <Field label="Descripción breve" name="description" required hint="Máximo 2-3 frases. Aparece en la tarjeta del proyecto.">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Descripción breve <span className="text-red-500">*</span>
+              </label>
               <textarea
                 name="description"
                 value={form.description}
                 onChange={handleChange}
-                rows={2}
-                placeholder="Describe brevemente de qué trata el proyecto..."
-                className={inputClass('description')}
                 required
+                rows={3}
+                placeholder="Un resumen corto de qué trata el proyecto (aparecerá en la tarjeta)"
+                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none ${fieldErrors.description ? 'border-red-400' : 'border-gray-300'}`}
               />
-            </Field>
+              {fieldErrors.description && <p className="text-red-500 text-xs mt-1">{fieldErrors.description}</p>}
+            </div>
 
-            {/* Descripción larga */}
-            <Field label="Descripción detallada" name="long_description" hint="Opcional. Explica la arquitectura, tecnologías usadas, dificultades encontradas...">
+            {/* Descripción completa */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Descripción completa <span className="text-gray-400 font-normal">(opcional)</span>
+              </label>
               <textarea
-                name="long_description"
-                value={form.long_description}
+                name="full_description"
+                value={form.full_description}
                 onChange={handleChange}
                 rows={5}
-                placeholder="Descripción más extensa del proyecto, objetivos, tecnologías..."
-                className={inputClass('long_description')}
+                placeholder="Explica en detalle el proyecto, tecnologías usadas, objetivos, resultados..."
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               />
-            </Field>
+            </div>
 
-            {/* Asignatura y Año */}
+            {/* Asignatura y año */}
             <div className="grid grid-cols-2 gap-4">
-              <Field label="Asignatura" name="subject_id">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Asignatura <span className="text-red-500">*</span>
+                </label>
                 <select
                   name="subject_id"
                   value={form.subject_id}
                   onChange={handleChange}
-                  className={inputClass('subject_id')}
+                  required
+                  className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white ${fieldErrors.subject_id ? 'border-red-400' : 'border-gray-300'}`}
                 >
-                  <option value="">Sin asignatura</option>
+                  <option value="">Selecciona una asignatura</option>
                   {subjects.map(s => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
-              </Field>
+                {fieldErrors.subject_id && <p className="text-red-500 text-xs mt-1">{fieldErrors.subject_id}</p>}
+              </div>
 
-              <Field label="Año" name="year" required>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Año <span className="text-gray-400 font-normal">(opcional)</span>
+                </label>
                 <input
                   type="number"
                   name="year"
                   value={form.year}
                   onChange={handleChange}
-                  min="2000"
-                  max={new Date().getFullYear() + 1}
-                  className={inputClass('year')}
-                  required
+                  min={1900}
+                  max={2100}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-              </Field>
+              </div>
             </div>
 
-            {/* URL y GitHub */}
-            <Field label="URL del proyecto" name="url" hint="Opcional. Enlace a la demo o web del proyecto.">
-              <input
-                type="url"
-                name="url"
-                value={form.url}
-                onChange={handleChange}
-                placeholder="https://mi-proyecto.com"
-                className={inputClass('url')}
-              />
-            </Field>
-
-            <Field label="URL de GitHub" name="github_url" hint="Opcional. Enlace al repositorio del código.">
-              <input
-                type="url"
-                name="github_url"
-                value={form.github_url}
-                onChange={handleChange}
-                placeholder="https://github.com/usuario/repositorio"
-                className={inputClass('github_url')}
-              />
-            </Field>
-
             {/* Tags */}
-            <Field label="Etiquetas / Tecnologías" name="tags" hint="Separadas por comas. Ej: React, Node.js, MongoDB">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Etiquetas <span className="text-gray-400 font-normal">(opcional, separadas por coma)</span>
+              </label>
               <input
                 type="text"
                 name="tags"
                 value={form.tags}
                 onChange={handleChange}
-                placeholder="React, Tailwind, Laravel..."
-                className={inputClass('tags')}
+                placeholder="Ej: React, Laravel, API REST"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </Field>
+            </div>
 
-            {/* Nota */}
-            <Field label="Nota obtenida" name="grade" hint="Opcional. Ej: 9.5 o Sobresaliente.">
+            {/* Colaboradores */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                IDs de colaboradores <span className="text-gray-400 font-normal">(opcional, IDs separados por coma)</span>
+              </label>
               <input
                 type="text"
-                name="grade"
-                value={form.grade}
+                name="collaborators"
+                value={form.collaborators}
                 onChange={handleChange}
-                placeholder="Ej: 8.5"
-                className={inputClass('grade')}
+                placeholder="Ej: 3, 7, 12"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </Field>
-
-            {/* Botones */}
-            <div className="flex gap-3 pt-2">
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg text-sm font-medium transition disabled:opacity-50"
-              >
-                {loading ? 'Publicando...' : '🚀 Publicar proyecto'}
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/')}
-                className="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 text-sm transition"
-              >
-                Cancelar
-              </button>
+              <p className="text-xs text-gray-400 mt-1">
+                Introduce los IDs de usuario de tus colaboradores si los conoces.
+              </p>
             </div>
+
+            {/* Autorización — campo requerido por el backend */}
+            <div className={`border rounded-lg p-4 ${fieldErrors.authorization ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50'}`}>
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="authorization"
+                  checked={form.authorization}
+                  onChange={handleChange}
+                  className="mt-0.5 h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">
+                  <span className="font-medium">Autorizo la publicación de este proyecto</span> en el repositorio académico.
+                  Confirmo que soy autor o tengo permiso de los autores para compartirlo, y que el contenido
+                  no infringe derechos de terceros. <span className="text-red-500">*</span>
+                </span>
+              </label>
+              {fieldErrors.authorization && (
+                <p className="text-red-500 text-xs mt-2 ml-7">{fieldErrors.authorization}</p>
+              )}
+            </div>
+
+            {/* Botón enviar */}
+            <button
+              type="submit"
+              disabled={loading || !form.authorization}
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-2.5 rounded-lg text-sm font-medium transition"
+            >
+              {loading ? 'Enviando solicitud...' : 'Enviar solicitud de publicación'}
+            </button>
+
+            <p className="text-xs text-gray-400 text-center">
+              Tu proyecto será visible una vez que un administrador lo apruebe.
+            </p>
           </form>
         </div>
       </div>
