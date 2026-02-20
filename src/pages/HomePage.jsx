@@ -3,6 +3,23 @@ import { Link } from 'react-router-dom'
 import Navbar from '../components/layout/Navbar'
 import api from '../services/api'
 
+const STORAGE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'https://repositorio-backend-production.up.railway.app'
+
+function coverImageUrl(project) {
+  const media = project.media ?? []
+  // Buscar primera imagen por tipo o extensión
+  const img = media.find(m => {
+    if (m.type === 'image' || m.mime_type?.startsWith('image/')) return true
+    const ext = (m.path || m.filename || '').split('.').pop().toLowerCase()
+    return ['jpg','jpeg','png','gif','webp'].includes(ext)
+  })
+  if (!img) return null
+  const path = img.path || img.filename
+  if (!path) return null
+  if (path.startsWith('http')) return path
+  return `${STORAGE_URL}/storage/${path}`
+}
+
 export default function HomePage() {
   const [projects, setProjects] = useState([])
   const [subjects, setSubjects] = useState([])
@@ -42,7 +59,6 @@ export default function HomePage() {
         <h1 className="text-4xl font-bold mb-3">Repositorio de Proyectos</h1>
         <p className="text-slate-400 text-lg mb-8">Explora los proyectos académicos de los estudiantes</p>
 
-        {/* Buscador */}
         <form onSubmit={handleSearch} className="max-w-2xl mx-auto flex gap-2">
           <input
             type="text"
@@ -67,7 +83,7 @@ export default function HomePage() {
         </form>
       </div>
 
-      {/* Proyectos */}
+      {/* Cuadrícula */}
       <div className="max-w-7xl mx-auto px-4 py-10">
         {loading ? (
           <div className="text-center text-gray-500 py-20">Cargando proyectos...</div>
@@ -75,40 +91,59 @@ export default function HomePage() {
           <div className="text-center text-gray-500 py-20">No se encontraron proyectos</div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map(project => (
-              <Link key={project.id} to={`/projects/${project.id}`}>
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:-translate-y-1 transition-all duration-200 overflow-hidden">
-                  {/* Thumbnail */}
-                  <div className="h-44 bg-gradient-to-br from-slate-700 to-blue-800 flex items-center justify-center">
-                    <span className="text-white text-4xl">📁</span>
-                  </div>
-                  <div className="p-4">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded-full">
-                        {project.subject?.name}
-                      </span>
-                      {project.year && (
-                        <span className="text-xs text-gray-400">{project.year}</span>
+            {projects.map(project => {
+              const cover = coverImageUrl(project)
+              return (
+                <Link key={project.id} to={`/projects/${project.id}`}>
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:-translate-y-1 transition-all duration-200 overflow-hidden h-full flex flex-col">
+
+                    {/* Thumbnail */}
+                    <div className="h-44 overflow-hidden shrink-0">
+                      {cover ? (
+                        <img
+                          src={cover}
+                          alt={project.title}
+                          className="w-full h-full object-cover"
+                          onError={e => {
+                            // Si falla la imagen, mostrar gradiente
+                            e.target.parentNode.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-slate-700 to-blue-800 flex items-center justify-center"><span class="text-white text-4xl">📁</span></div>'
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-slate-700 to-blue-800 flex items-center justify-center">
+                          <span className="text-white text-4xl">📁</span>
+                        </div>
                       )}
                     </div>
-                    <h3 className="font-semibold text-gray-900 mt-2 mb-1 line-clamp-2">
-                      {project.title}
-                    </h3>
-                    <p className="text-sm text-gray-500 line-clamp-2">{project.description}</p>
-                    <div className="mt-3 flex flex-wrap gap-1">
-                      {project.tags?.slice(0, 3).map(tag => (
-                        <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
-                          {tag}
+
+                    <div className="p-4 flex flex-col flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded-full truncate max-w-[70%]">
+                          {project.subject?.name}
                         </span>
-                      ))}
-                    </div>
-                    <div className="mt-3 text-xs text-gray-400">
-                      Por {project.users?.map(u => u.name || u.email).join(', ')}
+                        {project.year && (
+                          <span className="text-xs text-gray-400 shrink-0">{project.year}</span>
+                        )}
+                      </div>
+                      <h3 className="font-semibold text-gray-900 mt-2 mb-1 line-clamp-2">
+                        {project.title}
+                      </h3>
+                      <p className="text-sm text-gray-500 line-clamp-2 flex-1">{project.description}</p>
+                      <div className="mt-3 flex flex-wrap gap-1">
+                        {project.tags?.slice(0, 3).map(tag => (
+                          <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                      <div className="mt-3 text-xs text-gray-400">
+                        Por {project.users?.map(u => u.name || u.email).join(', ')}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              )
+            })}
           </div>
         )}
       </div>
