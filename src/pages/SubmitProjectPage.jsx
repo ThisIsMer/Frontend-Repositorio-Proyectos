@@ -141,9 +141,18 @@ export default function SubmitProjectPage() {
       await api.post('/requests/create-project', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
       setSuccess(true)
     } catch (err) {
-      const errors = err.response?.data?.errors
-      if (errors) { setFieldErrors(errors); setError('Corrige los errores del formulario.') }
-      else setError(err.response?.data?.message || 'Error al enviar la solicitud.')
+      const data = err.response?.data
+      // LOG TEMPORAL — ver en consola exactamente qué rechaza el backend
+      console.error('422 Response completa:', JSON.stringify(data, null, 2))
+      if (data?.errors) {
+        setFieldErrors(data.errors)
+        const allMessages = Object.entries(data.errors)
+          .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+          .join(' | ')
+        setError(`Errores: ${allMessages}`)
+      } else {
+        setError(data?.message || `Error ${err.response?.status}: ${err.message}`)
+      }
     } finally { setLoading(false) }
   }
 
