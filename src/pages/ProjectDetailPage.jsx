@@ -5,6 +5,11 @@ import api from '../services/api'
 
 const STORAGE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'https://repositorio-backend-production.up.railway.app'
 
+// Obtener la ruta del archivo sea cual sea el campo que use el backend
+function getItemPath(item) {
+  return item.file_path || item.path || item.filename || ''
+}
+
 function mediaUrl(path) {
   if (!path) return null
   if (path.startsWith('http')) return path
@@ -13,13 +18,13 @@ function mediaUrl(path) {
 
 function isImage(item) {
   if (item.type === 'image' || item.mime_type?.startsWith('image/')) return true
-  const ext = (item.path || item.filename || '').split('.').pop().toLowerCase()
+  const ext = getItemPath(item).split('.').pop().toLowerCase()
   return ['jpg','jpeg','png','gif','webp'].includes(ext)
 }
 
 function isVideo(item) {
   if (item.type === 'video' || item.mime_type?.startsWith('video/')) return true
-  const ext = (item.path || item.filename || '').split('.').pop().toLowerCase()
+  const ext = getItemPath(item).split('.').pop().toLowerCase()
   return ['mp4','avi','mov','quicktime'].includes(ext)
 }
 
@@ -128,8 +133,8 @@ function MediaGallery({ allImages, allVideos }) {
   })
 
   const featuredSrc = featured.type === 'video'
-    ? mediaUrl(allVideos[featured.index].path || allVideos[featured.index].filename)
-    : mediaUrl(allImages[featured.index].path || allImages[featured.index].filename)
+    ? mediaUrl(getItemPath(allVideos[featured.index]))
+    : mediaUrl(getItemPath(allImages[featured.index]))
 
   return (
     <div className="flex flex-col gap-2">
@@ -154,7 +159,7 @@ function MediaGallery({ allImages, allVideos }) {
       {thumbnails.length > 0 && (
         <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
           {thumbnails.map((t, i) => {
-            const src = mediaUrl(t.item.path || t.item.filename)
+            const src = mediaUrl(getItemPath(t.item))
             return (
               <div
                 key={`${t.type}-${t.index}-${i}`}
