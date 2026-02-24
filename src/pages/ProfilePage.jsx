@@ -1,34 +1,45 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../components/layout/Navbar'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 
+const STORAGE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'https://repositorio-backend-production.up.railway.app'
+
+function avatarUrl(path) {
+  if (!path) return null
+  if (path.startsWith('http')) return path
+  return `${STORAGE_URL}/storage/${path}`
+}
+
 export default function ProfilePage() {
   const { user, login, logout } = useAuth()
   const navigate = useNavigate()
+  const avatarInputRef = useRef(null)
 
-  const [projects, setProjects] = useState([])
-  const [requests, setRequests] = useState([])
+  const [projects, setProjects]               = useState([])
+  const [requests, setRequests]               = useState([])
   const [loadingProjects, setLoadingProjects] = useState(true)
   const [loadingRequests, setLoadingRequests] = useState(true)
 
-  const [editing, setEditing] = useState(false)
-  const [form, setForm] = useState({ name: user?.name || '', bio: user?.bio || '' })
+  const [editing, setEditing]       = useState(false)
+  const [form, setForm]             = useState({ name: user?.name || '', bio: user?.bio || '' })
+  const [avatarFile, setAvatarFile] = useState(null)   // File object
+  const [avatarPreview, setAvatarPreview] = useState(null) // ObjectURL
   const [saveLoading, setSaveLoading] = useState(false)
-  const [saveError, setSaveError] = useState('')
+  const [saveError, setSaveError]     = useState('')
   const [saveSuccess, setSaveSuccess] = useState(false)
 
   // Modal editar proyecto
   const [editingProject, setEditingProject] = useState(null)
-  const [editForm, setEditForm] = useState({})
-  const [editLoading, setEditLoading] = useState(false)
-  const [editError, setEditError] = useState('')
-  const [subjects, setSubjects] = useState([])
+  const [editForm, setEditForm]             = useState({})
+  const [editLoading, setEditLoading]       = useState(false)
+  const [editError, setEditError]           = useState('')
+  const [subjects, setSubjects]             = useState([])
 
   // Modal confirmar eliminar
   const [deletingProject, setDeletingProject] = useState(null)
-  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteLoading, setDeleteLoading]     = useState(false)
 
   useEffect(() => {
     api.get('/my-projects').then(r => setProjects(r.data)).catch(() => {}).finally(() => setLoadingProjects(false))
@@ -36,20 +47,59 @@ export default function ProfilePage() {
     api.get('/subjects').then(r => setSubjects(r.data)).catch(() => {})
   }, [])
 
-  // --- Perfil ---
+  // Limpiar preview al desmontar
+  useEffect(() => () => { if (avatarPreview) URL.revokeObjectURL(avatarPreview) }, [avatarPreview])
+
+  // ── Foto de perfil ──────────────────────────────────────────────────────────
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    if (!['image/jpeg','image/png','image/jpg'].includes(file.type)) {
+      setSaveError('Solo se permiten imágenes JPG o PNG.'); return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setSaveError('La imagen no puede superar 5MB.'); return
+    }
+    setSaveError('')
+    setAvatarFile(file)
+    if (avatarPreview) URL.revokeObjectURL(avatarPreview)
+    setAvatarPreview(URL.createObjectURL(file))
+  }
+
+  // ── Guardar perfil ──────────────────────────────────────────────────────────
   const handleSaveProfile = async (e) => {
     e.preventDefault()
     setSaveLoading(true); setSaveError(''); setSaveSuccess(false)
     try {
-      const res = await api.put('/profile', form)
+      let res
+      if (avatarFile) {
+        // Enviar como multipart/form-data cuando hay imagen
+        const fd = new FormData()
+        fd.append('name', form.name)
+        fd.append('bio', form.bio)
+        fd.append('profile_picture', avatarFile)
+        res = await api.put('/profile', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+      } else {
+        res = await api.put('/profile', form)
+      }
       login(res.data.user, localStorage.getItem('token'))
-      setSaveSuccess(true); setEditing(false)
+      setSaveSuccess(true)
+      setEditing(false)
+      setAvatarFile(null)
+      setAvatarPreview(null)
     } catch (err) {
       setSaveError(err.response?.data?.message || 'Error al guardar el perfil.')
     } finally { setSaveLoading(false) }
   }
 
-  // --- Editar proyecto ---
+  const cancelEdit = () => {
+    setEditing(false); setSaveError('')
+    setAvatarFile(null)
+    if (avatarPreview) { URL.revokeObjectURL(avatarPreview); setAvatarPreview(null) }
+    setForm({ name: user?.name || '', bio: user?.bio || '' })
+  }
+
+  // ── Editar proyecto ─────────────────────────────────────────────────────────
   const openEdit = (project) => {
     setEditingProject(project)
     setEditForm({
@@ -77,7 +127,6 @@ export default function ProfilePage() {
       }
       await api.post(`/requests/update-project/${editingProject.id}`, payload)
       setEditingProject(null)
-      // Refrescar solicitudes
       api.get('/my-requests').then(r => setRequests(r.data)).catch(() => {})
       alert('Solicitud de edición enviada. Un administrador la revisará.')
     } catch (err) {
@@ -86,7 +135,7 @@ export default function ProfilePage() {
     } finally { setEditLoading(false) }
   }
 
-  // --- Eliminar proyecto ---
+  // ── Eliminar proyecto ───────────────────────────────────────────────────────
   const handleDeleteConfirm = async () => {
     setDeleteLoading(true)
     try {
@@ -100,21 +149,27 @@ export default function ProfilePage() {
   }
 
   const statusLabel = (status) => ({
-    pending:  { text: 'Pendiente',  color: 'bg-yellow-100 text-yellow-700' },
-    approved: { text: 'Aprobada',   color: 'bg-green-100 text-green-700'  },
-    rejected: { text: 'Rechazada',  color: 'bg-red-100 text-red-700'      },
+    pending:  { text: 'Pendiente', color: 'bg-yellow-100 text-yellow-700' },
+    approved: { text: 'Aprobada',  color: 'bg-green-100 text-green-700'  },
+    rejected: { text: 'Rechazada', color: 'bg-red-100 text-red-700'      },
   }[status] || { text: status, color: 'bg-gray-100 text-gray-700' })
 
-  const typeLabel = (type) => ({ create: 'Crear proyecto', update: 'Editar proyecto', delete: 'Eliminar proyecto' }[type] || type)
+  const typeLabel = (type) => ({
+    create: 'Crear proyecto', update: 'Editar proyecto', delete: 'Eliminar proyecto'
+  }[type] || type)
+
+  // Avatar actual (preview > backend > iniciales)
+  const currentAvatar = avatarPreview || avatarUrl(user?.profile_picture)
+  const initials = (user?.name || user?.email || '?').charAt(0).toUpperCase()
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <div className="max-w-4xl mx-auto px-4 py-10 space-y-8">
 
-        {/* Datos del perfil */}
+        {/* ── Perfil ── */}
         <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-5">
             <h2 className="text-xl font-bold text-gray-900">Mi Perfil</h2>
             {!editing && (
               <button onClick={() => { setEditing(true); setSaveSuccess(false) }}
@@ -124,64 +179,129 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {saveSuccess && <div className="bg-green-50 border border-green-200 text-green-700 text-sm p-3 rounded-lg mb-4">Perfil actualizado correctamente.</div>}
+          {saveSuccess && (
+            <div className="bg-green-50 border border-green-200 text-green-700 text-sm p-3 rounded-lg mb-4">
+              Perfil actualizado correctamente.
+            </div>
+          )}
 
           {editing ? (
-            <form onSubmit={handleSaveProfile} className="space-y-4">
+            <form onSubmit={handleSaveProfile} className="space-y-5">
               {saveError && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg">{saveError}</div>}
+
+              {/* Avatar editable */}
+              <div className="flex items-center gap-5">
+                <div className="relative shrink-0">
+                  <div className="w-20 h-20 rounded-full overflow-hidden bg-blue-100 border-2 border-blue-200">
+                    {currentAvatar ? (
+                      <img src={currentAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-blue-600 text-2xl font-bold">
+                        {initials}
+                      </div>
+                    )}
+                  </div>
+                  {/* Botón de cámara encima */}
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    className="absolute -bottom-1 -right-1 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm shadow transition"
+                    title="Cambiar foto"
+                  >
+                    📷
+                  </button>
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png"
+                    onChange={handleAvatarChange}
+                    className="hidden"
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Foto de perfil</p>
+                  <p className="text-xs text-gray-400 mt-0.5">JPG o PNG · máx. 5MB</p>
+                  {avatarFile && (
+                    <p className="text-xs text-green-600 mt-1">✓ {avatarFile.name}</p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    className="mt-2 text-xs text-blue-600 hover:text-blue-700 underline"
+                  >
+                    {currentAvatar ? 'Cambiar foto' : 'Subir foto'}
+                  </button>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
                 <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Tu nombre completo" />
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Tu nombre completo" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Biografía</label>
-                <textarea value={form.bio} onChange={e => setForm(f => ({ ...f, bio: e.target.value }))} rows={3} maxLength={1000}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="Cuéntanos algo sobre ti..." />
+                <textarea value={form.bio} onChange={e => setForm(f => ({ ...f, bio: e.target.value }))}
+                  rows={3} maxLength={1000}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  placeholder="Cuéntanos algo sobre ti..." />
               </div>
               <div className="flex gap-2">
-                <button type="submit" disabled={saveLoading} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                <button type="submit" disabled={saveLoading}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
                   {saveLoading ? 'Guardando...' : 'Guardar cambios'}
                 </button>
-                <button type="button" onClick={() => { setEditing(false); setForm({ name: user?.name || '', bio: user?.bio || '' }) }}
+                <button type="button" onClick={cancelEdit}
                   className="border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition">
                   Cancelar
                 </button>
               </div>
             </form>
           ) : (
-            <div className="space-y-2 text-sm text-gray-700">
-              <div className="flex gap-2"><span className="text-gray-400 w-20 shrink-0">Email</span><span className="font-medium">{user?.email}</span></div>
-              <div className="flex gap-2"><span className="text-gray-400 w-20 shrink-0">Nombre</span><span>{user?.name || <span className="text-gray-400 italic">Sin nombre</span>}</span></div>
-              <div className="flex gap-2"><span className="text-gray-400 w-20 shrink-0">Bio</span><span>{user?.bio || <span className="text-gray-400 italic">Sin biografía</span>}</span></div>
-              {user?.is_admin && (
-                <div className="flex gap-2"><span className="text-gray-400 w-20 shrink-0">Rol</span>
-                  <span className="bg-yellow-100 text-yellow-700 text-xs font-medium px-2 py-0.5 rounded-full">Administrador</span>
-                </div>
-              )}
+            /* Vista del perfil */
+            <div className="flex items-center gap-5">
+              <div className="w-20 h-20 rounded-full overflow-hidden bg-blue-100 border-2 border-gray-200 shrink-0">
+                {currentAvatar ? (
+                  <img src={currentAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-blue-600 text-2xl font-bold">
+                    {initials}
+                  </div>
+                )}
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900 text-lg">{user?.name || '—'}</p>
+                <p className="text-sm text-gray-500">{user?.email}</p>
+                {user?.bio && <p className="text-sm text-gray-600 mt-2">{user.bio}</p>}
+              </div>
             </div>
           )}
         </div>
 
-        {/* Mis proyectos */}
+        {/* ── Mis proyectos ── */}
         <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Mis Proyectos</h2>
           {loadingProjects ? (
             <p className="text-sm text-gray-400">Cargando proyectos...</p>
           ) : projects.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">
-              <p className="mb-3">Aún no tienes proyectos publicados.</p>
-              <Link to="/submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">+ Subir proyecto</Link>
+            <div className="text-center py-8">
+              <p className="text-gray-400 text-sm mb-3">No tienes proyectos publicados aún.</p>
+              <Link to="/submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                + Subir proyecto
+              </Link>
             </div>
           ) : (
             <div className="space-y-3">
               {projects.map(project => (
-                <div key={project.id} className="flex items-center justify-between border border-gray-100 rounded-lg p-4 gap-4">
-                  <div className="flex-1 min-w-0">
-                    <Link to={`/projects/${project.id}`} className="font-semibold text-gray-900 hover:text-blue-600 transition line-clamp-1">{project.title}</Link>
-                    <p className="text-xs text-gray-400 mt-0.5">{project.subject?.name}{project.year ? ` · ${project.year}` : ''}</p>
+                <div key={project.id} className="flex items-center justify-between border border-gray-100 rounded-lg p-4">
+                  <div className="min-w-0 flex-1">
+                    <Link to={`/projects/${project.id}`} className="font-medium text-gray-900 hover:text-blue-600 transition truncate block">
+                      {project.title}
+                    </Link>
+                    <p className="text-xs text-gray-400 mt-0.5">{project.subject?.name} · {project.year}</p>
                   </div>
-                  <div className="flex gap-2 shrink-0">
+                  <div className="flex gap-2 shrink-0 ml-3">
                     <button onClick={() => openEdit(project)}
                       className="text-xs border border-blue-200 text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition">
                       ✏️ Editar
@@ -197,7 +317,7 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* Mis solicitudes */}
+        {/* ── Mis solicitudes ── */}
         <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Mis Solicitudes</h2>
           {loadingRequests ? (
@@ -213,9 +333,14 @@ export default function ProfilePage() {
                     <div>
                       <span className="font-medium text-gray-800">{req.data?.title || `Solicitud #${req.id}`}</span>
                       <span className="text-gray-400 ml-2 text-xs">{typeLabel(req.type)}</span>
-                      <p className="text-xs text-gray-400 mt-0.5">{new Date(req.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {new Date(req.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </p>
+                      {req.admin_message && (
+                        <p className="text-xs text-red-500 mt-1">Motivo: {req.admin_message}</p>
+                      )}
                     </div>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${color}`}>{text}</span>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ml-3 ${color}`}>{text}</span>
                   </div>
                 )
               })}
@@ -224,7 +349,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Modal editar proyecto */}
+      {/* ── Modal editar proyecto ── */}
       {editingProject && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
@@ -298,7 +423,7 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Modal confirmar eliminación */}
+      {/* ── Modal confirmar eliminación ── */}
       {deletingProject && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 text-center">
