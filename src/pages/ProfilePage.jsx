@@ -73,12 +73,13 @@ export default function ProfilePage() {
     try {
       let res
       if (avatarFile) {
-        // Enviar como multipart/form-data cuando hay imagen
+        // Laravel no procesa archivos en PUT — method spoofing con POST + _method=PUT
         const fd = new FormData()
+        fd.append('_method', 'PUT')
         fd.append('name', form.name)
         fd.append('bio', form.bio)
         fd.append('profile_picture', avatarFile)
-        res = await api.put('/profile', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+        res = await api.post('/profile', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
       } else {
         res = await api.put('/profile', form)
       }
