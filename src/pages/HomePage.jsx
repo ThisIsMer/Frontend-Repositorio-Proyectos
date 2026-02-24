@@ -7,14 +7,13 @@ const STORAGE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'https:
 
 function coverImageUrl(project) {
   const media = project.media ?? []
-  // Buscar primera imagen por tipo o extensión
   const img = media.find(m => {
     if (m.type === 'image' || m.mime_type?.startsWith('image/')) return true
-    const ext = (m.path || m.filename || '').split('.').pop().toLowerCase()
+    const ext = (m.file_path || m.path || m.filename || '').split('.').pop().toLowerCase()
     return ['jpg','jpeg','png','gif','webp'].includes(ext)
   })
   if (!img) return null
-  const path = img.path || img.filename
+  const path = img.file_path || img.path || img.filename
   if (!path) return null
   if (path.startsWith('http')) return path
   return `${STORAGE_URL}/storage/${path}`
