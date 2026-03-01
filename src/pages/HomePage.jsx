@@ -136,7 +136,10 @@ export default function HomePage() {
                         ))}
                       </div>
                       <div className="mt-3 text-xs text-gray-400">
-                        Por {project.users?.map(u => u.name || u.email).join(', ')}
+                        Por {[
+                          ...(project.users?.map(u => u.name || u.email) ?? []),
+                          ...(project.collaborators_text ?? []),
+                        ].join(', ')}
                       </div>
                     </div>
                   </div>
