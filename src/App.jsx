@@ -9,6 +9,7 @@ import ProfilePage from './pages/ProfilePage'
 import UserProfilePage from './pages/UserProfilePage'
 import SubmitProjectPage from './pages/SubmitProjectPage'
 import AdminPage from './pages/Admin/AdminPage'
+import AboutPage from './pages/AboutPage'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -30,6 +31,7 @@ function AppRoutes() {
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/about" element={<AboutPage />} />
       <Route path="/projects/:id" element={<ProjectDetailPage />} />
       <Route path="/users/:id/projects" element={<UserProfilePage />} />
       <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
