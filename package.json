@@ -1,9 +1,10 @@
 {
-  "name": "frontend-repositorio-proyectos",
+  "name": "repositorio-gda3div",
+  "homepage": "https://ThisIsMer.github.io/Repositorio-GDA3DIV",
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://ThisIsMer.github.io/Frontend-Repositorio-Proyectos",
+  
   "scripts": {
     "dev": "vite",
     "build": "vite build",
