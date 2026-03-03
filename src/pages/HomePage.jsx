@@ -3,14 +3,16 @@ import { Link } from 'react-router-dom'
 import Navbar from '../components/layout/Navbar'
 import api from '../services/api'
 
-const STORAGE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'https://repositorio-backend-production.up.railway.app'
+const STORAGE_URL =
+  import.meta.env.VITE_API_URL?.replace('/api', '') ??
+  'https://repositorio-backend-production.up.railway.app'
 
 function coverImageUrl(project) {
   const media = project.media ?? []
   const img = media.find(m => {
     if (m.type === 'image' || m.mime_type?.startsWith('image/')) return true
     const ext = (m.file_path || m.path || m.filename || '').split('.').pop().toLowerCase()
-    return ['jpg','jpeg','png','gif','webp'].includes(ext)
+    return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)
   })
   if (!img) return null
   const path = img.file_path || img.path || img.filename
@@ -26,9 +28,14 @@ export default function HomePage() {
   const [search, setSearch] = useState('')
   const [selectedSubject, setSelectedSubject] = useState('')
 
+  // menú lateral
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+
   useEffect(() => {
-    api.get('/subjects').then(r => setSubjects(r.data))
+    // Si te falla por CORS, se quedará vacío. No pasa nada para la UI.
+    api.get('/subjects').then(r => setSubjects(r.data)).catch(() => setSubjects([]))
     fetchProjects()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const fetchProjects = async (params = {}) => {
@@ -36,6 +43,8 @@ export default function HomePage() {
     try {
       const res = await api.get('/projects', { params })
       setProjects(res.data.data)
+    } catch (e) {
+      setProjects([])
     } finally {
       setLoading(false)
     }
@@ -49,107 +58,128 @@ export default function HomePage() {
     })
   }
 
- return (
-  <div className="page">
-    <header className="hero">
-      <div className="hero__inner">
-        <Navbar />
+  // fallback demo si no hay subjects
+  const subjectList =
+    subjects?.length
+      ? subjects.map(s => ({ id: s.id, name: s.name }))
+      : [
+          { id: 1, name: 'Programación' },
+          { id: 2, name: 'Diseño' },
+          { id: 3, name: 'Bases de Datos' },
+          { id: 4, name: 'IA' },
+          { id: 5, name: 'Redes' },
+        ]
 
-        <div className="hero__content">
-          <h1 className="hero__title">Repositorio de Proyectos</h1>
-          <p className="hero__subtitle">Explora los proyectos académicos de los estudiantes</p>
+  return (
+    <div className="page">
+      {/* HERO */}
+      <header className="hero">
+        <div className="hero__inner">
+          {/* Pasamos la función para abrir el menú */}
+          <Navbar onOpenMenu={() => setIsMenuOpen(true)} />
 
-          <form onSubmit={handleSearch} className="hero__form">
-            <input
-              type="text"
-              placeholder="Buscar proyectos..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="field"
-            />
+          <div className="hero__content">
+            <h1 className="hero__title">Repositorio de Proyectos</h1>
+            <p className="hero__subtitle">Explora los proyectos académicos de los estudiantes</p>
 
-            <select
-              value={selectedSubject}
-              onChange={e => setSelectedSubject(e.target.value)}
-              className="field"
-            >
-              <option value="">Todas las asignaturas</option>
-              {subjects.map(s => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
-
-            <button type="submit" className="btn btn--primary">
-              Buscar
-            </button>
-          </form>
+            <form onSubmit={handleSearch} className="hero__form">
+              <input
+                type="text"
+                placeholder="Buscar proyectos..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="field"
+              />
+              <button type="submit" className="btn btn--primary">
+                Buscar
+              </button>
+            </form>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
 
-    <main className="content">
-      {loading ? (
-        <div className="empty">Cargando proyectos...</div>
-      ) : projects.length === 0 ? (
-        <div className="empty">No se encontraron proyectos</div>
-      ) : (
-        <div className="grid">
-          {projects.map(project => {
-            const cover = coverImageUrl(project)
-            return (
-              <Link key={project.id} to={`/projects/${project.id}`} className="cardLink">
-                <article className="card">
-                  <div className="thumb">
-                    {cover ? (
-                      <img
-                        src={cover}
-                        alt={project.title}
-                        className="thumbImg"
-                        onError={e => {
-                          e.currentTarget.remove()
-                        }}
-                      />
-                    ) : null}
-
-                    {!cover && (
-                      <div className="thumbFallback">
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="cardBody">
-                    <div className="cardTop">
-                      <span className="badge">
-                        {project.subject?.name}
-                      </span>
-                      {project.year && (
-                        <span className="year">{project.year}</span>
+      {/* CONTENIDO */}
+      <main className="content">
+        {loading ? (
+          <div className="empty">Cargando proyectos...</div>
+        ) : projects.length === 0 ? (
+          <div className="empty">No se encontraron proyectos</div>
+        ) : (
+          <div className="grid">
+            {projects.map(project => {
+              const cover = coverImageUrl(project)
+              return (
+                <Link key={project.id} to={`/projects/${project.id}`} className="cardLink">
+                  <article className="card">
+                    <div className="thumb">
+                      {cover ? (
+                        <img
+                          src={cover}
+                          alt={project.title}
+                          className="thumbImg"
+                          onError={e => e.currentTarget.remove()}
+                        />
+                      ) : (
+                        <div className="thumbFallback">
+                          <span className="thumbIcon">📁</span>
+                        </div>
                       )}
                     </div>
 
-                    <h3 className="cardTitle">{project.title}</h3>
-                    <p className="cardDesc">{project.description}</p>
+                    <div className="cardBody">
+                      <div className="cardTop">
+                        <span className="badge">{project.subject?.name}</span>
+                        {project.year && <span className="year">{project.year}</span>}
+                      </div>
 
-                    <div className="tags">
-                      {project.tags?.slice(0, 3).map(tag => (
-                        <span key={tag} className="tag">{tag}</span>
-                      ))}
+                      <h3 className="cardTitle">{project.title}</h3>
+                      <p className="cardDesc">{project.description}</p>
                     </div>
+                  </article>
+                </Link>
+              )
+            })}
+          </div>
+        )}
+      </main>
 
-                    <div className="authors">
-                      Por {[
-                        ...(project.users?.map(u => u.name || u.email) ?? []),
-                        ...(project.collaborators_text ?? []),
-                      ].join(', ')}
-                    </div>
-                  </div>
-                </article>
-              </Link>
-            )
-          })}
+      {/* OVERLAY */}
+      <div
+        className={`overlay ${isMenuOpen ? 'is-open' : ''}`}
+        onClick={() => setIsMenuOpen(false)}
+      />
+
+      {/* MENÚ LATERAL */}
+      <aside className={`sideMenu ${isMenuOpen ? 'is-open' : ''}`}>
+        <div className="sideMenu__top">
+          <div className="sideMenu__title">Asignaturas</div>
+          <button
+            type="button"
+            className="sideMenu__close"
+            onClick={() => setIsMenuOpen(false)}
+            aria-label="Cerrar menú"
+          >
+            ✕
+          </button>
         </div>
-      )}
-    </main>
-  </div>
-)
+
+        <div className="sideMenu__list">
+          {subjectList.map(s => (
+            <button
+              key={s.id}
+              type="button"
+              className={`sideMenu__item ${String(selectedSubject) === String(s.id) ? 'is-active' : ''}`}
+              onClick={() => {
+                setSelectedSubject(String(s.id))
+                fetchProjects({ search: search || undefined, subject_id: s.id })
+                setIsMenuOpen(false)
+              }}
+            >
+              {s.name}
+            </button>
+          ))}
+        </div>
+      </aside>
+    </div>
+  )
 }
