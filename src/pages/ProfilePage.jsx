@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import Navbar from '../components/layout/Navbar'
+import Footer from '../components/layout/Footer'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 
@@ -16,7 +17,6 @@ function isEmail(str) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str.trim())
 }
 
-// ── Chip de colaborador ───────────────────────────────────────────────────────
 function CollaboratorChip({ collab, onRemove }) {
   const base = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium'
   if (collab.type === 'user') {
@@ -35,12 +35,11 @@ function CollaboratorChip({ collab, onRemove }) {
   )
 }
 
-// ── Campo de colaboradores ────────────────────────────────────────────────────
 function CollaboratorsField({ collaborators, onChange }) {
-  const [input, setInput]         = useState('')
+  const [input, setInput] = useState('')
   const [searching, setSearching] = useState(false)
-  const [hint, setHint]           = useState(null)
-  const debounceRef               = useRef(null)
+  const [hint, setHint] = useState(null)
+  const debounceRef = useRef(null)
 
   const addCollaborator = (collab) => {
     if (collaborators.some(c => c.value === collab.value)) return
@@ -61,10 +60,10 @@ function CollaboratorsField({ collaborators, onChange }) {
           if (res.data?.id) {
             setHint({ type: 'found', message: `Cuenta encontrada: ${res.data.name || res.data.email}`, user: res.data })
           } else {
-            setHint({ type: 'notfound', message: 'No hay ninguna cuenta registrada con ese correo, revise que esté bien escrito.' })
+            setHint({ type: 'notfound', message: 'No hay ninguna cuenta registrada con ese correo.' })
           }
         } catch {
-          setHint({ type: 'notfound', message: 'No hay ninguna cuenta registrada con ese correo, revise que esté bien escrito.' })
+          setHint({ type: 'notfound', message: 'No hay ninguna cuenta registrada con ese correo.' })
         } finally { setSearching(false) }
       }, 600)
     } else {
@@ -126,8 +125,8 @@ function CollaboratorsField({ collaborators, onChange }) {
         </button>
       </div>
       {hint && (
-        <p className={`text-xs mt-1.5 ${hint.type === 'found' ? 'text-green-600' : hint.type === 'notfound' ? 'text-red-500' : 'text-gray-500'}`}>
-          {hint.type === 'found' ? '✓ ' : hint.type === 'notfound' ? '✗ ' : ''}{hint.message}
+        <p className={`text-xs mt-1.5 ${hint.type === 'found' ? 'text-green-600' : 'text-red-500'}`}>
+          {hint.type === 'found' ? '✓ ' : '✗ '}{hint.message}
           {hint.type === 'found' && (
             <button type="button"
               onClick={() => addCollaborator({ type: 'user', value: input.trim(), user_id: hint.user.id, name: hint.user.name || hint.user.email })}
@@ -141,35 +140,32 @@ function CollaboratorsField({ collaborators, onChange }) {
   )
 }
 
-// ── Página principal ──────────────────────────────────────────────────────────
 export default function ProfilePage() {
   const { user, login } = useAuth()
-  const avatarInputRef  = useRef(null)
+  const avatarInputRef = useRef(null)
 
-  const [projects, setProjects]               = useState([])
-  const [requests, setRequests]               = useState([])
+  const [projects, setProjects] = useState([])
+  const [requests, setRequests] = useState([])
   const [loadingProjects, setLoadingProjects] = useState(true)
   const [loadingRequests, setLoadingRequests] = useState(true)
 
-  const [editing, setEditing]           = useState(false)
-  const [form, setForm]                 = useState({ name: user?.name || '', bio: user?.bio || '' })
-  const [avatarFile, setAvatarFile]     = useState(null)
+  const [editing, setEditing] = useState(false)
+  const [form, setForm] = useState({ name: user?.name || '', bio: user?.bio || '' })
+  const [avatarFile, setAvatarFile] = useState(null)
   const [avatarPreview, setAvatarPreview] = useState(null)
-  const [saveLoading, setSaveLoading]   = useState(false)
-  const [saveError, setSaveError]       = useState('')
-  const [saveSuccess, setSaveSuccess]   = useState(false)
+  const [saveLoading, setSaveLoading] = useState(false)
+  const [saveError, setSaveError] = useState('')
+  const [saveSuccess, setSaveSuccess] = useState(false)
 
-  // Modal editar proyecto
-  const [editingProject, setEditingProject]   = useState(null)
-  const [editForm, setEditForm]               = useState({})
+  const [editingProject, setEditingProject] = useState(null)
+  const [editForm, setEditForm] = useState({})
   const [editCollaborators, setEditCollaborators] = useState([])
-  const [editLoading, setEditLoading]         = useState(false)
-  const [editError, setEditError]             = useState('')
-  const [subjects, setSubjects]               = useState([])
+  const [editLoading, setEditLoading] = useState(false)
+  const [editError, setEditError] = useState('')
+  const [subjects, setSubjects] = useState([])
 
-  // Modal confirmar eliminar
   const [deletingProject, setDeletingProject] = useState(null)
-  const [deleteLoading, setDeleteLoading]     = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   useEffect(() => {
     api.get('/my-projects').then(r => setProjects(r.data)).catch(() => {}).finally(() => setLoadingProjects(false))
@@ -179,11 +175,10 @@ export default function ProfilePage() {
 
   useEffect(() => () => { if (avatarPreview) URL.revokeObjectURL(avatarPreview) }, [avatarPreview])
 
-  // ── Avatar ──────────────────────────────────────────────────────────────────
   const handleAvatarChange = (e) => {
     const file = e.target.files[0]
     if (!file) return
-    if (!['image/jpeg','image/png','image/jpg'].includes(file.type)) { setSaveError('Solo JPG o PNG.'); return }
+    if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) { setSaveError('Solo JPG o PNG.'); return }
     if (file.size > 5 * 1024 * 1024) { setSaveError('Máximo 5MB.'); return }
     setSaveError('')
     setAvatarFile(file)
@@ -191,7 +186,6 @@ export default function ProfilePage() {
     setAvatarPreview(URL.createObjectURL(file))
   }
 
-  // ── Guardar perfil ──────────────────────────────────────────────────────────
   const handleSaveProfile = async (e) => {
     e.preventDefault()
     setSaveLoading(true); setSaveError(''); setSaveSuccess(false)
@@ -221,51 +215,42 @@ export default function ProfilePage() {
     setForm({ name: user?.name || '', bio: user?.bio || '' })
   }
 
-  // ── Abrir modal de edición de proyecto ──────────────────────────────────────
   const openEdit = (project) => {
     setEditingProject(project)
     setEditForm({
-      title:            project.title || '',
-      description:      project.description || '',
+      title: project.title || '',
+      description: project.description || '',
       full_description: project.full_description || '',
-      subject_id:       project.subject?.id || '',
-      year:             project.year || '',
-      tags:             project.tags?.join(', ') || '',
-      game_url:         project.game_url || '',
-      authorization:    false,
+      subject_id: project.subject?.id || '',
+      year: project.year || '',
+      tags: project.tags?.join(', ') || '',
+      game_url: project.game_url || '',
+      authorization: false,
     })
-
-    // Reconstruir lista de colaboradores a partir del proyecto existente
-    // Usuarios con cuenta (excluyendo al propio usuario que edita)
     const userCollabs = (project.users || [])
       .filter(u => u.id !== user?.id)
       .map(u => ({ type: 'user', value: u.email || '', user_id: u.id, name: u.name || u.email }))
-
-    // Colaboradores en texto plano
     const textCollabs = (project.collaborators_text || [])
       .map(name => ({ type: 'text', value: name }))
-
     setEditCollaborators([...userCollabs, ...textCollabs])
     setEditError('')
   }
 
-  // ── Enviar solicitud de edición ─────────────────────────────────────────────
   const handleEditSubmit = async (e) => {
     e.preventDefault()
     if (!editForm.authorization) { setEditError('Debes marcar la autorización.'); return }
     setEditLoading(true); setEditError('')
     try {
       const fd = new FormData()
-      fd.append('title',            editForm.title)
-      fd.append('description',      editForm.description)
+      fd.append('title', editForm.title)
+      fd.append('description', editForm.description)
       if (editForm.full_description) fd.append('full_description', editForm.full_description)
-      fd.append('subject_id',       editForm.subject_id)
-      if (editForm.year)    fd.append('year',     editForm.year)
+      fd.append('subject_id', editForm.subject_id)
+      if (editForm.year) fd.append('year', editForm.year)
       if (editForm.game_url) fd.append('game_url', editForm.game_url)
-      fd.append('authorization',    '1')
+      fd.append('authorization', '1')
       editForm.tags.split(',').map(t => t.trim()).filter(Boolean).forEach(t => fd.append('tags[]', t))
       fd.append('collaborators_json', JSON.stringify(editCollaborators))
-
       await api.post(`/requests/update-project/${editingProject.id}`, fd, {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
@@ -278,7 +263,6 @@ export default function ProfilePage() {
     } finally { setEditLoading(false) }
   }
 
-  // ── Eliminar proyecto ───────────────────────────────────────────────────────
   const handleDeleteConfirm = async () => {
     setDeleteLoading(true)
     try {
@@ -292,9 +276,9 @@ export default function ProfilePage() {
   }
 
   const statusLabel = (status) => ({
-    pending:  { text: 'Pendiente', color: 'bg-yellow-100 text-yellow-700' },
-    approved: { text: 'Aprobada',  color: 'bg-green-100 text-green-700'  },
-    rejected: { text: 'Rechazada', color: 'bg-red-100 text-red-700'      },
+    pending: { text: 'Pendiente', color: 'bg-yellow-100 text-yellow-700' },
+    approved: { text: 'Aprobada', color: 'bg-green-100 text-green-700' },
+    rejected: { text: 'Rechazada', color: 'bg-red-100 text-red-700' },
   }[status] || { text: status, color: 'bg-gray-100 text-gray-700' })
 
   const typeLabel = (type) => ({
@@ -302,229 +286,241 @@ export default function ProfilePage() {
   }[type] || type)
 
   const currentAvatar = avatarPreview || avatarUrl(user?.profile_picture)
-  const initials      = (user?.name || user?.email || '?').charAt(0).toUpperCase()
+  const initials = (user?.name || user?.email || '?').charAt(0).toUpperCase()
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="page">
       <Navbar />
-      <div className="max-w-4xl mx-auto px-4 py-10 space-y-8">
 
-        {/* ── Mi Perfil ── */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-xl font-bold text-gray-900">Mi Perfil</h2>
-            {!editing && (
-              <button onClick={() => { setEditing(true); setSaveSuccess(false) }}
-                className="text-sm text-blue-600 hover:text-blue-700 border border-blue-200 px-3 py-1.5 rounded-lg transition">
-                Editar
-              </button>
+      <header className="hero">
+        <div className="hero__inner">
+          <div className="hero__content">
+            <h1 className="hero__title">Mi Perfil</h1>
+            <p className="hero__subtitle">Gestiona tu información y proyectos</p>
+          </div>
+        </div>
+      </header>
+
+      <main className="content" style={{ maxWidth: '900px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+          {/* ── Mi Perfil ── */}
+          <div className="about__card">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <h2 className="about__h2" style={{ marginBottom: 0 }}>Información personal</h2>
+              {!editing && (
+                <button onClick={() => { setEditing(true); setSaveSuccess(false) }}
+                  style={{ fontSize: '13px', color: '#385e9d', border: '1px solid #bfdbfe', padding: '6px 14px', borderRadius: '8px', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  Editar
+                </button>
+              )}
+            </div>
+
+            {saveSuccess && (
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', fontSize: '14px', padding: '12px 16px', borderRadius: '10px', marginBottom: '16px' }}>
+                Perfil actualizado correctamente.
+              </div>
+            )}
+
+            {editing ? (
+              <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                {saveError && <div style={{ background: '#fef2f2', color: '#dc2626', fontSize: '14px', padding: '12px 16px', borderRadius: '10px' }}>{saveError}</div>}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                  <div style={{ position: 'relative', flexShrink: 0 }}>
+                    <div style={{ width: '80px', height: '80px', borderRadius: '50%', overflow: 'hidden', background: '#dbeafe', border: '2px solid #bfdbfe' }}>
+                      {currentAvatar
+                        ? <img src={currentAvatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', fontSize: '28px', fontWeight: '900' }}>{initials}</div>}
+                    </div>
+                    <button type="button" onClick={() => avatarInputRef.current?.click()}
+                      style={{ position: 'absolute', bottom: '-4px', right: '-4px', background: '#2563eb', color: '#fff', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', border: 'none', cursor: 'pointer' }}>
+                      📷
+                    </button>
+                    <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png" onChange={handleAvatarChange} style={{ display: 'none' }} />
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '14px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>Foto de perfil</p>
+                    <p style={{ fontSize: '12px', color: '#9ca3af' }}>JPG o PNG · máx. 5MB</p>
+                    {avatarFile && <p style={{ fontSize: '12px', color: '#16a34a', marginTop: '4px' }}>✓ {avatarFile.name}</p>}
+                  </div>
+                </div>
+                <div>
+                  <label className="authCard__label">Nombre</label>
+                  <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    className="authCard__input" placeholder="Tu nombre completo" />
+                </div>
+                <div>
+                  <label className="authCard__label">Biografía</label>
+                  <textarea value={form.bio} onChange={e => setForm(f => ({ ...f, bio: e.target.value }))} rows={3} maxLength={1000}
+                    style={{ width: '100%', border: '1px solid rgba(17,24,39,0.15)', borderRadius: '10px', padding: '10px 14px', fontSize: '15px', fontFamily: 'inherit', outline: 'none', resize: 'none', boxSizing: 'border-box' }}
+                    placeholder="Cuéntanos algo sobre ti..." />
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button type="submit" disabled={saveLoading}
+                    className="btn btn--primary btn--sm">
+                    {saveLoading ? 'Guardando...' : 'Guardar cambios'}
+                  </button>
+                  <button type="button" onClick={cancelEdit}
+                    style={{ border: '1px solid #d1d5db', background: 'transparent', color: '#374151', padding: '7px 14px', borderRadius: '999px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                <div style={{ width: '80px', height: '80px', borderRadius: '50%', overflow: 'hidden', background: '#dbeafe', border: '2px solid #e5e7eb', flexShrink: 0 }}>
+                  {currentAvatar
+                    ? <img src={currentAvatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', fontSize: '28px', fontWeight: '900' }}>{initials}</div>}
+                </div>
+                <div>
+                  <p style={{ fontWeight: '700', color: '#111827', fontSize: '18px', marginBottom: '4px' }}>{user?.name || '—'}</p>
+                  <p style={{ fontSize: '14px', color: '#6b7280' }}>{user?.email}</p>
+                  {user?.bio && <p style={{ fontSize: '14px', color: '#374151', marginTop: '8px' }}>{user.bio}</p>}
+                </div>
+              </div>
             )}
           </div>
 
-          {saveSuccess && <div className="bg-green-50 border border-green-200 text-green-700 text-sm p-3 rounded-lg mb-4">Perfil actualizado correctamente.</div>}
-
-          {editing ? (
-            <form onSubmit={handleSaveProfile} className="space-y-5">
-              {saveError && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg">{saveError}</div>}
-              {/* Avatar */}
-              <div className="flex items-center gap-5">
-                <div className="relative shrink-0">
-                  <div className="w-20 h-20 rounded-full overflow-hidden bg-blue-100 border-2 border-blue-200">
-                    {currentAvatar
-                      ? <img src={currentAvatar} alt="Avatar" className="w-full h-full object-cover" />
-                      : <div className="w-full h-full flex items-center justify-center text-blue-600 text-2xl font-bold">{initials}</div>}
-                  </div>
-                  <button type="button" onClick={() => avatarInputRef.current?.click()}
-                    className="absolute -bottom-1 -right-1 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm shadow transition"
-                    title="Cambiar foto">📷</button>
-                  <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png" onChange={handleAvatarChange} className="hidden" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-700">Foto de perfil</p>
-                  <p className="text-xs text-gray-400 mt-0.5">JPG o PNG · máx. 5MB</p>
-                  {avatarFile && <p className="text-xs text-green-600 mt-1">✓ {avatarFile.name}</p>}
-                  <button type="button" onClick={() => avatarInputRef.current?.click()}
-                    className="mt-2 text-xs text-blue-600 hover:text-blue-700 underline">
-                    {currentAvatar ? 'Cambiar foto' : 'Subir foto'}
-                  </button>
-                </div>
+          {/* ── Mis proyectos ── */}
+          <div className="about__card">
+            <h2 className="about__h2">Mis Proyectos</h2>
+            {loadingProjects ? (
+              <p style={{ fontSize: '14px', color: '#9ca3af' }}>Cargando proyectos...</p>
+            ) : projects.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                <p style={{ color: '#9ca3af', fontSize: '14px', marginBottom: '12px' }}>No tienes proyectos publicados aún.</p>
+                <Link to="/submit" className="btn btn--primary btn--sm">+ Subir proyecto</Link>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-                <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Tu nombre completo" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Biografía</label>
-                <textarea value={form.bio} onChange={e => setForm(f => ({ ...f, bio: e.target.value }))} rows={3} maxLength={1000}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="Cuéntanos algo sobre ti..." />
-              </div>
-              <div className="flex gap-2">
-                <button type="submit" disabled={saveLoading}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-                  {saveLoading ? 'Guardando...' : 'Guardar cambios'}
-                </button>
-                <button type="button" onClick={cancelEdit}
-                  className="border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition">
-                  Cancelar
-                </button>
-              </div>
-            </form>
-          ) : (
-            <div className="flex items-center gap-5">
-              <div className="w-20 h-20 rounded-full overflow-hidden bg-blue-100 border-2 border-gray-200 shrink-0">
-                {currentAvatar
-                  ? <img src={currentAvatar} alt="Avatar" className="w-full h-full object-cover" />
-                  : <div className="w-full h-full flex items-center justify-center text-blue-600 text-2xl font-bold">{initials}</div>}
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900 text-lg">{user?.name || '—'}</p>
-                <p className="text-sm text-gray-500">{user?.email}</p>
-                {user?.bio && <p className="text-sm text-gray-600 mt-2">{user.bio}</p>}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ── Mis proyectos ── */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Mis Proyectos</h2>
-          {loadingProjects ? (
-            <p className="text-sm text-gray-400">Cargando proyectos...</p>
-          ) : projects.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-400 text-sm mb-3">No tienes proyectos publicados aún.</p>
-              <Link to="/submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">+ Subir proyecto</Link>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {projects.map(project => (
-                <div key={project.id} className="flex items-center justify-between border border-gray-100 rounded-lg p-4">
-                  <div className="min-w-0 flex-1">
-                    <Link to={`/projects/${project.id}`} className="font-medium text-gray-900 hover:text-blue-600 transition truncate block">
-                      {project.title}
-                    </Link>
-                    <p className="text-xs text-gray-400 mt-0.5">{project.subject?.name} · {project.year}</p>
-                  </div>
-                  <div className="flex gap-2 shrink-0 ml-3">
-                    <button onClick={() => openEdit(project)}
-                      className="text-xs border border-blue-200 text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition">✏️ Editar</button>
-                    <button onClick={() => setDeletingProject(project)}
-                      className="text-xs border border-red-200 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition">🗑️ Eliminar</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* ── Mis solicitudes ── */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Mis Solicitudes</h2>
-          {loadingRequests ? (
-            <p className="text-sm text-gray-400">Cargando solicitudes...</p>
-          ) : requests.length === 0 ? (
-            <p className="text-center py-8 text-gray-400 text-sm">No has enviado ninguna solicitud aún.</p>
-          ) : (
-            <div className="space-y-3">
-              {requests.map(req => {
-                const { text, color } = statusLabel(req.status)
-                return (
-                  <div key={req.id} className="flex items-center justify-between border border-gray-100 rounded-lg p-3 text-sm">
-                    <div>
-                      <span className="font-medium text-gray-800">{req.data?.title || `Solicitud #${req.id}`}</span>
-                      <span className="text-gray-400 ml-2 text-xs">{typeLabel(req.type)}</span>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {new Date(req.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </p>
-                      {req.admin_message && <p className="text-xs text-red-500 mt-1">Motivo: {req.admin_message}</p>}
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {projects.map(project => (
+                  <div key={project.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #f3f4f6', borderRadius: '12px', padding: '14px 16px', gap: '12px' }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <Link to={`/projects/${project.id}`} style={{ fontWeight: '700', color: '#111827', textDecoration: 'none', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {project.title}
+                      </Link>
+                      <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>{project.subject?.name} · {project.year}</p>
                     </div>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ml-3 ${color}`}>{text}</span>
+                    <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                      <button onClick={() => openEdit(project)}
+                        style={{ fontSize: '12px', border: '1px solid #bfdbfe', color: '#2563eb', background: 'transparent', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                        ✏️ Editar
+                      </button>
+                      <button onClick={() => setDeletingProject(project)}
+                        style={{ fontSize: '12px', border: '1px solid #fecaca', color: '#dc2626', background: 'transparent', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                        🗑️ Eliminar
+                      </button>
+                    </div>
                   </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-      {/* ── Modal editar proyecto ── */}
+          {/* ── Mis solicitudes ── */}
+          <div className="about__card">
+            <h2 className="about__h2">Mis Solicitudes</h2>
+            {loadingRequests ? (
+              <p style={{ fontSize: '14px', color: '#9ca3af' }}>Cargando solicitudes...</p>
+            ) : requests.length === 0 ? (
+              <p style={{ textAlign: 'center', padding: '32px 0', color: '#9ca3af', fontSize: '14px' }}>No has enviado ninguna solicitud aún.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {requests.map(req => {
+                  const { text, color } = statusLabel(req.status)
+                  return (
+                    <div key={req.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #f3f4f6', borderRadius: '12px', padding: '12px 16px', fontSize: '14px', gap: '12px' }}>
+                      <div>
+                        <span style={{ fontWeight: '700', color: '#111827' }}>{req.data?.title || `Solicitud #${req.id}`}</span>
+                        <span style={{ color: '#9ca3af', marginLeft: '8px', fontSize: '12px' }}>{typeLabel(req.type)}</span>
+                        <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>
+                          {new Date(req.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </p>
+                        {req.admin_message && <p style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px' }}>Motivo: {req.admin_message}</p>}
+                      </div>
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${color}`}>{text}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+        </div>
+      </main>
+
+      <Footer />
+
+      {/* Modal editar proyecto */}
       {editingProject && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900">Solicitar edición</h3>
-              <button onClick={() => setEditingProject(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '16px' }}>
+          <div style={{ background: '#fff', borderRadius: '16px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', width: '100%', maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto', padding: '28px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <h3 style={{ fontWeight: '900', fontSize: '18px', color: '#111827', margin: 0 }}>Solicitar edición</h3>
+              <button onClick={() => setEditingProject(null)} style={{ background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#6b7280' }}>✕</button>
             </div>
-            <p className="text-sm text-gray-500 mb-4">
+            <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '16px' }}>
               Se enviará una solicitud de edición. Un administrador la revisará antes de aplicar los cambios.
             </p>
-            {editError && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4">{editError}</div>}
-            <form onSubmit={handleEditSubmit} className="space-y-4">
+            {editError && <div style={{ background: '#fef2f2', color: '#dc2626', fontSize: '14px', padding: '12px 16px', borderRadius: '10px', marginBottom: '16px' }}>{editError}</div>}
+            <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Título <span className="text-red-500">*</span></label>
-                <input type="text" value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))} required
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <label className="authCard__label">Título *</label>
+                <input type="text" value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))} required className="authCard__input" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción breve <span className="text-red-500">*</span></label>
+                <label className="authCard__label">Descripción breve *</label>
                 <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} required rows={2}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+                  style={{ width: '100%', border: '1px solid rgba(17,24,39,0.15)', borderRadius: '10px', padding: '10px 14px', fontSize: '15px', fontFamily: 'inherit', outline: 'none', resize: 'none', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción completa</label>
+                <label className="authCard__label">Descripción completa</label>
                 <textarea value={editForm.full_description} onChange={e => setEditForm(f => ({ ...f, full_description: e.target.value }))} rows={3}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+                  style={{ width: '100%', border: '1px solid rgba(17,24,39,0.15)', borderRadius: '10px', padding: '10px 14px', fontSize: '15px', fontFamily: 'inherit', outline: 'none', resize: 'none', boxSizing: 'border-box' }} />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Asignatura</label>
+                  <label className="authCard__label">Asignatura</label>
                   <select value={editForm.subject_id} onChange={e => setEditForm(f => ({ ...f, subject_id: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    style={{ width: '100%', border: '1px solid rgba(17,24,39,0.15)', borderRadius: '10px', padding: '10px 14px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', background: '#fff', boxSizing: 'border-box' }}>
                     <option value="">Selecciona...</option>
                     {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Año</label>
-                  <input type="number" value={editForm.year} onChange={e => setEditForm(f => ({ ...f, year: e.target.value }))} min={1900} max={2100}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <label className="authCard__label">Año</label>
+                  <input type="number" value={editForm.year} onChange={e => setEditForm(f => ({ ...f, year: e.target.value }))} min={1900} max={2100} className="authCard__input" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Enlace al juego / demo</label>
-                <input type="url" value={editForm.game_url} onChange={e => setEditForm(f => ({ ...f, game_url: e.target.value }))}
-                  placeholder="https://itch.io/tu-juego"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <label className="authCard__label">Enlace al juego / demo</label>
+                <input type="url" value={editForm.game_url} onChange={e => setEditForm(f => ({ ...f, game_url: e.target.value }))} placeholder="https://itch.io/tu-juego" className="authCard__input" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Etiquetas (separadas por coma)</label>
-                <input type="text" value={editForm.tags} onChange={e => setEditForm(f => ({ ...f, tags: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <label className="authCard__label">Etiquetas (separadas por coma)</label>
+                <input type="text" value={editForm.tags} onChange={e => setEditForm(f => ({ ...f, tags: e.target.value }))} className="authCard__input" />
               </div>
-
-              {/* ── Campo de colaboradores ── */}
               <CollaboratorsField collaborators={editCollaborators} onChange={setEditCollaborators} />
-              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 -mt-2">
-                ⚠️ La lista de colaboradores que envíes <strong>reemplazará</strong> la actual. Asegúrate de incluir a todos los participantes.
+              <p style={{ fontSize: '12px', color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '10px 14px', margin: 0 }}>
+                ⚠️ La lista de colaboradores que envíes <strong>reemplazará</strong> la actual.
               </p>
-
-              <div className="border border-gray-200 bg-gray-50 rounded-lg p-3">
-                <label className="flex items-start gap-3 cursor-pointer">
+              <div style={{ border: '1px solid #e5e7eb', background: '#f9fafb', borderRadius: '10px', padding: '14px' }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
                   <input type="checkbox" checked={editForm.authorization} onChange={e => setEditForm(f => ({ ...f, authorization: e.target.checked }))}
-                    className="mt-0.5 h-4 w-4 text-blue-600 rounded" />
-                  <span className="text-sm text-gray-700">
-                    Confirmo que tengo autorización para editar este proyecto. <span className="text-red-500">*</span>
+                    style={{ marginTop: '2px', width: '16px', height: '16px' }} />
+                  <span style={{ fontSize: '14px', color: '#374151' }}>
+                    Confirmo que tengo autorización para editar este proyecto. <span style={{ color: '#dc2626' }}>*</span>
                   </span>
                 </label>
               </div>
-              <div className="flex gap-2 pt-1">
+              <div style={{ display: 'flex', gap: '10px' }}>
                 <button type="submit" disabled={editLoading || !editForm.authorization}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 rounded-lg text-sm font-medium transition">
-                  {editLoading ? 'Enviando...' : 'Enviar solicitud de edición'}
+                  className="btn btn--primary" style={{ flex: 1, justifyContent: 'center', borderRadius: '10px' }}>
+                  {editLoading ? 'Enviando...' : 'Enviar solicitud'}
                 </button>
                 <button type="button" onClick={() => setEditingProject(null)}
-                  className="border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition">
+                  style={{ border: '1px solid #d1d5db', background: 'transparent', color: '#374151', padding: '12px 18px', borderRadius: '10px', fontSize: '14px', fontWeight: '800', cursor: 'pointer', fontFamily: 'inherit' }}>
                   Cancelar
                 </button>
               </div>
@@ -533,23 +529,23 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* ── Modal confirmar eliminación ── */}
+      {/* Modal confirmar eliminación */}
       {deletingProject && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 text-center">
-            <div className="text-4xl mb-3">🗑️</div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">¿Solicitar eliminación?</h3>
-            <p className="text-sm text-gray-500 mb-1">Vas a solicitar la eliminación de:</p>
-            <p className="font-semibold text-gray-800 mb-4">"{deletingProject.title}"</p>
-            <p className="text-xs text-gray-400 mb-6">Un administrador revisará la solicitud antes de eliminar el proyecto definitivamente.</p>
-            <div className="flex gap-3">
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '16px' }}>
+          <div style={{ background: '#fff', borderRadius: '16px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', width: '100%', maxWidth: '360px', padding: '28px', textAlign: 'center' }}>
+            <div style={{ fontSize: '48px', marginBottom: '12px' }}>🗑️</div>
+            <h3 style={{ fontWeight: '900', fontSize: '18px', color: '#111827', marginBottom: '8px' }}>¿Solicitar eliminación?</h3>
+            <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>Vas a solicitar la eliminación de:</p>
+            <p style={{ fontWeight: '700', color: '#111827', marginBottom: '16px' }}>"{deletingProject.title}"</p>
+            <p style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '24px' }}>Un administrador revisará la solicitud antes de eliminar el proyecto.</p>
+            <div style={{ display: 'flex', gap: '10px' }}>
               <button onClick={() => setDeletingProject(null)}
-                className="flex-1 border border-gray-300 hover:bg-gray-50 text-gray-700 py-2 rounded-lg text-sm font-medium transition">
+                style={{ flex: 1, border: '1px solid #d1d5db', background: 'transparent', color: '#374151', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'inherit' }}>
                 Cancelar
               </button>
               <button onClick={handleDeleteConfirm} disabled={deleteLoading}
-                className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white py-2 rounded-lg text-sm font-medium transition">
-                {deleteLoading ? 'Enviando...' : 'Sí, solicitar eliminación'}
+                style={{ flex: 1, background: '#dc2626', color: '#fff', border: 'none', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'inherit', opacity: deleteLoading ? 0.5 : 1 }}>
+                {deleteLoading ? 'Enviando...' : 'Sí, solicitar'}
               </button>
             </div>
           </div>

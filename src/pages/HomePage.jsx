@@ -62,7 +62,7 @@ export default function HomePage() {
   return (
     <div className="page">
 
-      <Navbar onOpenMenu={() => setIsMenuOpen(true)} />
+      <Navbar />
 
       <header className="hero">
         <div className="hero__inner">
@@ -73,6 +73,18 @@ export default function HomePage() {
             </div>
             <p className="hero__subtitle">Explora los proyectos académicos de los estudiantes</p>
             <form onSubmit={handleSearch} className="hero__form">
+              <button
+                type="button"
+                className="btn btn--filters"
+                onClick={() => setIsMenuOpen(true)}
+              >
+                <img
+                  src={`${import.meta.env.BASE_URL}icons/filtro.png`}
+                  alt=""
+                  style={{ width: '18px', height: '18px', filter: 'brightness(0) invert(1)' }}
+                />
+                Filtros
+              </button>
               <input
                 type="text"
                 placeholder="Buscar proyectos..."
@@ -82,6 +94,23 @@ export default function HomePage() {
               />
               <button type="submit" className="btn btn--primary">Buscar</button>
             </form>
+            {selectedSubject && (
+              <div className="hero__activeFilter">
+                <span>
+                  Filtrando por: <strong>{subjects.find(s => String(s.id) === String(selectedSubject))?.name}</strong>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedSubject('')
+                    fetchProjects({ search: search || undefined })
+                  }}
+                  className="hero__clearFilter"
+                >
+                  ✕ Quitar filtro
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -127,24 +156,38 @@ export default function HomePage() {
 
       <aside className={`sideMenu ${isMenuOpen ? 'is-open' : ''}`}>
         <div className="sideMenu__top">
-          <div className="sideMenu__title">Asignaturas</div>
+          <div className="sideMenu__title">Filtros</div>
           <button type="button" className="sideMenu__close" onClick={() => setIsMenuOpen(false)}>✕</button>
         </div>
         <div className="sideMenu__list">
-          {subjects.map(s => (
+          <div className="sideMenu__section">
+            <p className="sideMenu__sectionLabel">Asignatura</p>
             <button
-              key={s.id}
               type="button"
-              className={`sideMenu__item ${String(selectedSubject) === String(s.id) ? 'is-active' : ''}`}
+              className={`sideMenu__item ${selectedSubject === '' ? 'is-active' : ''}`}
               onClick={() => {
-                setSelectedSubject(String(s.id))
-                fetchProjects({ search: search || undefined, subject_id: s.id })
+                setSelectedSubject('')
+                fetchProjects({ search: search || undefined })
                 setIsMenuOpen(false)
               }}
             >
-              {s.name}
+              Todas las asignaturas
             </button>
-          ))}
+            {subjects.map(s => (
+              <button
+                key={s.id}
+                type="button"
+                className={`sideMenu__item ${String(selectedSubject) === String(s.id) ? 'is-active' : ''}`}
+                onClick={() => {
+                  setSelectedSubject(String(s.id))
+                  fetchProjects({ search: search || undefined, subject_id: s.id })
+                  setIsMenuOpen(false)
+                }}
+              >
+                {s.name}
+              </button>
+            ))}
+          </div>
         </div>
       </aside>
     </div>

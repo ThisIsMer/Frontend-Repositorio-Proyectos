@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/layout/Navbar'
+import Footer from '../components/layout/Footer'
 import api from '../services/api'
 
 const MAX_IMAGE_MB = 5
@@ -26,50 +27,42 @@ function isEmail(str) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str.trim())
 }
 
-// ── Chip de colaborador ──────────────────────────────────────────────────────
 function CollaboratorChip({ collab, onRemove }) {
-  const base = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium'
+  const base = { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: '700' }
   if (collab.type === 'user') {
     return (
-      <span className={`${base} bg-blue-100 text-blue-800`}>
+      <span style={{ ...base, background: '#dbeafe', color: '#1e40af' }}>
         👤 {collab.name || collab.value}
-        <button type="button" onClick={onRemove} className="hover:text-blue-600 ml-0.5">✕</button>
+        <button type="button" onClick={onRemove} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#1e40af', fontSize: '12px', padding: 0 }}>✕</button>
       </span>
     )
   }
   return (
-    <span className={`${base} bg-gray-100 text-gray-700`}>
+    <span style={{ ...base, background: '#f3f4f6', color: '#374151' }}>
       {collab.value}
-      <button type="button" onClick={onRemove} className="hover:text-gray-500 ml-0.5">✕</button>
+      <button type="button" onClick={onRemove} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '12px', padding: 0 }}>✕</button>
     </span>
   )
 }
 
-// ── Campo de colaboradores ───────────────────────────────────────────────────
 function CollaboratorsField({ collaborators, onChange }) {
-  const [input, setInput]         = useState('')
+  const [input, setInput] = useState('')
   const [searching, setSearching] = useState(false)
-  const [hint, setHint]           = useState(null)  // { type: 'found'|'notfound'|'text', message, user? }
+  const [hint, setHint] = useState(null)
   const debounceRef = useRef(null)
 
   const addCollaborator = (collab) => {
-    // Evitar duplicados
     if (collaborators.some(c => c.value === collab.value)) return
     onChange([...collaborators, collab])
-    setInput('')
-    setHint(null)
+    setInput(''); setHint(null)
   }
 
   const handleInput = (e) => {
     const val = e.target.value
-    setInput(val)
-    setHint(null)
+    setInput(val); setHint(null)
     clearTimeout(debounceRef.current)
-
     if (!val.trim()) return
-
     if (isEmail(val.trim())) {
-      // Buscar el email en el backend con debounce
       setSearching(true)
       debounceRef.current = setTimeout(async () => {
         try {
@@ -77,13 +70,11 @@ function CollaboratorsField({ collaborators, onChange }) {
           if (res.data?.id) {
             setHint({ type: 'found', message: `Cuenta encontrada: ${res.data.name || res.data.email}`, user: res.data })
           } else {
-            setHint({ type: 'notfound', message: 'No hay ninguna cuenta registrada con ese correo, revise que esté bien escrito.' })
+            setHint({ type: 'notfound', message: 'No hay ninguna cuenta registrada con ese correo.' })
           }
         } catch {
-          setHint({ type: 'notfound', message: 'No hay ninguna cuenta registrada con ese correo, revise que esté bien escrito.' })
-        } finally {
-          setSearching(false)
-        }
+          setHint({ type: 'notfound', message: 'No hay ninguna cuenta registrada con ese correo.' })
+        } finally { setSearching(false) }
       }, 600)
     } else {
       setSearching(false)
@@ -95,14 +86,10 @@ function CollaboratorsField({ collaborators, onChange }) {
     e.preventDefault()
     const val = input.trim()
     if (!val) return
-
     if (isEmail(val)) {
       if (hint?.type === 'found' && hint.user) {
         addCollaborator({ type: 'user', value: val, user_id: hint.user.id, name: hint.user.name || hint.user.email })
-      } else if (hint?.type === 'notfound') {
-        // No añadir email que no existe
       }
-      // Si aún está buscando, esperar
     } else {
       addCollaborator({ type: 'text', value: val })
     }
@@ -122,63 +109,40 @@ function CollaboratorsField({ collaborators, onChange }) {
 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Colaboradores <span className="text-gray-400 font-normal">(opcional)</span>
+      <label className="authCard__label">
+        Colaboradores <span style={{ fontWeight: '400', color: '#9ca3af' }}>(opcional)</span>
       </label>
-      <p className="text-xs text-gray-400 mb-2">
-        Introduce un correo para buscar usuarios registrados, o un nombre/apellido para añadirlo como texto. Pulsa Enter o coma para añadir.
+      <p style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '8px', marginTop: '2px' }}>
+        Introduce un correo para buscar usuarios registrados, o un nombre para añadirlo como texto. Enter o coma para añadir.
       </p>
-
-      {/* Chips de colaboradores añadidos */}
       {collaborators.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-2">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
           {collaborators.map((c, i) => (
-            <CollaboratorChip
-              key={i}
-              collab={c}
-              onRemove={() => onChange(collaborators.filter((_, idx) => idx !== i))}
-            />
+            <CollaboratorChip key={i} collab={c}
+              onRemove={() => onChange(collaborators.filter((_, idx) => idx !== i))} />
           ))}
         </div>
       )}
-
-      {/* Input */}
-      <div className="flex gap-2">
-        <div className="flex-1 relative">
-          <input
-            type="text"
-            value={input}
-            onChange={handleInput}
-            onKeyDown={handleKeyDown}
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ flex: 1, position: 'relative' }}>
+          <input type="text" value={input} onChange={handleInput} onKeyDown={handleKeyDown}
             placeholder="correo@usal.es o Nombre Apellido..."
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          {searching && (
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 animate-pulse">
-              Buscando...
-            </span>
-          )}
+            className="authCard__input" style={{ width: '100%' }} />
+          {searching && <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '11px', color: '#9ca3af' }}>Buscando...</span>}
         </div>
-        <button
-          type="button"
-          onClick={handleAddClick}
+        <button type="button" onClick={handleAddClick}
           disabled={!input.trim() || (isEmail(input.trim()) && hint?.type !== 'found')}
-          className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 disabled:opacity-40 text-gray-700 rounded-lg transition border border-gray-300"
-        >
+          style={{ padding: '10px 14px', fontSize: '13px', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '10px', cursor: 'pointer', fontFamily: 'inherit', opacity: (!input.trim() || (isEmail(input.trim()) && hint?.type !== 'found')) ? 0.4 : 1 }}>
           Añadir
         </button>
       </div>
-
-      {/* Hint */}
       {hint && (
-        <p className={`text-xs mt-1.5 ${hint.type === 'found' ? 'text-green-600' : hint.type === 'notfound' ? 'text-red-500' : 'text-gray-500'}`}>
-          {hint.type === 'found' ? '✓ ' : hint.type === 'notfound' ? '✗ ' : ''}{hint.message}
+        <p style={{ fontSize: '12px', marginTop: '6px', color: hint.type === 'found' ? '#16a34a' : '#dc2626' }}>
+          {hint.type === 'found' ? '✓ ' : '✗ '}{hint.message}
           {hint.type === 'found' && (
-            <button
-              type="button"
+            <button type="button"
               onClick={() => addCollaborator({ type: 'user', value: input.trim(), user_id: hint.user.id, name: hint.user.name || hint.user.email })}
-              className="ml-2 underline hover:no-underline"
-            >
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#16a34a', fontSize: '12px', textDecoration: 'underline', marginLeft: '6px', fontFamily: 'inherit' }}>
               Añadir
             </button>
           )}
@@ -188,19 +152,18 @@ function CollaboratorsField({ collaborators, onChange }) {
   )
 }
 
-// ── Página principal ─────────────────────────────────────────────────────────
 export default function SubmitProjectPage() {
   const navigate = useNavigate()
   const imageInputRef = useRef(null)
   const videoInputRef = useRef(null)
 
-  const [subjects, setSubjects]       = useState([])
-  const [loading, setLoading]         = useState(false)
-  const [success, setSuccess]         = useState(false)
-  const [error, setError]             = useState('')
+  const [subjects, setSubjects] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
-  const [images, setImages]           = useState([])
-  const [videos, setVideos]           = useState([])
+  const [images, setImages] = useState([])
+  const [videos, setVideos] = useState([])
   const [collaborators, setCollaborators] = useState([])
 
   const [form, setForm] = useState({
@@ -258,7 +221,6 @@ export default function SubmitProjectPage() {
     setError(''); setFieldErrors({})
     if (!form.authorization) { setFieldErrors({ authorization: 'Debes aceptar los términos.' }); return }
     setLoading(true)
-
     const fd = new FormData()
     fd.append('title', form.title)
     fd.append('description', form.description)
@@ -268,23 +230,17 @@ export default function SubmitProjectPage() {
     if (form.game_url) fd.append('game_url', form.game_url)
     fd.append('authorization', '1')
     form.tags.split(',').map(t => t.trim()).filter(Boolean).forEach(t => fd.append('tags[]', t))
-
-    // Colaboradores como JSON en el campo collaborators_json
-    // (FormData no soporta arrays de objetos directamente)
     fd.append('collaborators_json', JSON.stringify(collaborators))
-
     images.forEach(img => fd.append('images[]', img.file))
     videos.forEach(v => fd.append('videos[]', v.file))
-
     try {
       await api.post('/requests/create-project', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
       setSuccess(true)
     } catch (err) {
       const data = err.response?.data
-      console.error('Error:', JSON.stringify(data, null, 2))
       if (data?.errors) {
         setFieldErrors(data.errors)
-        setError('Errores: ' + Object.entries(data.errors).map(([f, m]) => `${f}: ${Array.isArray(m) ? m.join(', ') : m}`).join(' | '))
+        setError('Revisa los campos marcados en rojo.')
       } else {
         setError(data?.message || `Error ${err.response?.status}: ${err.message}`)
       }
@@ -297,200 +253,235 @@ export default function SubmitProjectPage() {
     setForm({ title: '', description: '', full_description: '', subject_id: '', year: new Date().getFullYear(), tags: '', game_url: '', authorization: false })
   }
 
+  const inputStyle = (hasError) => ({
+    width: '100%',
+    border: `1px solid ${hasError ? '#fca5a5' : 'rgba(17,24,39,0.15)'}`,
+    borderRadius: '10px',
+    padding: '10px 14px',
+    fontSize: '15px',
+    fontFamily: 'inherit',
+    outline: 'none',
+    boxSizing: 'border-box',
+    background: hasError ? '#fef2f2' : '#fff',
+  })
+
   if (success) return (
-    <div className="min-h-screen bg-gray-50"><Navbar />
-      <div className="max-w-lg mx-auto mt-24 bg-white p-10 rounded-xl shadow border border-gray-200 text-center">
-        <div className="text-5xl mb-4">✅</div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Solicitud enviada!</h2>
-        <p className="text-gray-500 text-sm mb-6">Tu proyecto ha sido enviado para revisión. Un administrador lo aprobará próximamente.</p>
-        <div className="flex gap-3 justify-center">
-          <button onClick={() => navigate('/')} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition">Volver al inicio</button>
-          <button onClick={resetForm} className="border border-gray-300 hover:bg-gray-50 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">Enviar otro proyecto</button>
+    <div className="page">
+      <Navbar />
+      <main className="content" style={{ maxWidth: '560px', textAlign: 'center', paddingTop: '80px' }}>
+        <div className="about__card" style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '56px', marginBottom: '16px' }}>✅</div>
+          <h2 style={{ fontSize: '24px', fontWeight: '900', color: '#111827', marginBottom: '8px' }}>¡Solicitud enviada!</h2>
+          <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '24px' }}>Tu proyecto ha sido enviado para revisión. Un administrador lo aprobará próximamente.</p>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+            <button onClick={() => navigate('/')} className="btn btn--primary">Volver al inicio</button>
+            <button onClick={resetForm}
+              style={{ border: '1px solid #d1d5db', background: 'transparent', color: '#374151', padding: '12px 18px', borderRadius: '999px', fontSize: '14px', fontWeight: '800', cursor: 'pointer', fontFamily: 'inherit' }}>
+              Enviar otro proyecto
+            </button>
+          </div>
         </div>
-      </div>
+      </main>
+      <Footer />
     </div>
   )
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="page">
       <Navbar />
-      <div className="max-w-2xl mx-auto px-4 py-10">
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Subir proyecto</h1>
-          <p className="text-sm text-gray-500 mb-6">Rellena los datos de tu proyecto. Un administrador lo revisará antes de publicarlo.</p>
 
-          {error && <div className="bg-red-50 border border-red-200 text-red-600 text-sm p-4 rounded-lg mb-5">{error}</div>}
+      <header className="hero">
+        <div className="hero__inner">
+          <div className="hero__content">
+            <h1 className="hero__title">Subir Proyecto</h1>
+            <p className="hero__subtitle">Comparte tu trabajo con la comunidad académica</p>
+          </div>
+        </div>
+      </header>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+      <main className="content" style={{ maxWidth: '700px' }}>
+        <div className="about__card">
+          <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '24px', marginTop: 0 }}>
+            Rellena los datos de tu proyecto. Un administrador lo revisará antes de publicarlo.
+          </p>
+
+          {error && (
+            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', fontSize: '14px', padding: '12px 16px', borderRadius: '10px', marginBottom: '20px' }}>
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
             {/* Título */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Título <span className="text-red-500">*</span></label>
+              <label className="authCard__label">Título <span style={{ color: '#dc2626' }}>*</span></label>
               <input type="text" name="title" value={form.title} onChange={handleChange} required
-                placeholder="Nombre del proyecto"
-                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${fieldErrors.title ? 'border-red-400' : 'border-gray-300'}`} />
-              {fieldErrors.title && <p className="text-red-500 text-xs mt-1">{fieldErrors.title}</p>}
+                placeholder="Nombre del proyecto" style={inputStyle(fieldErrors.title)} />
+              {fieldErrors.title && <p style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px' }}>{fieldErrors.title}</p>}
             </div>
 
             {/* Descripción breve */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Descripción breve <span className="text-red-500">*</span></label>
+              <label className="authCard__label">Descripción breve <span style={{ color: '#dc2626' }}>*</span></label>
               <textarea name="description" value={form.description} onChange={handleChange} required rows={2}
                 placeholder="Una frase que resuma el proyecto"
-                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none ${fieldErrors.description ? 'border-red-400' : 'border-gray-300'}`} />
+                style={{ ...inputStyle(fieldErrors.description), resize: 'none' }} />
             </div>
 
             {/* Descripción completa */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Descripción completa <span className="text-gray-400 font-normal">(opcional)</span></label>
+              <label className="authCard__label">Descripción completa <span style={{ fontWeight: '400', color: '#9ca3af' }}>(opcional)</span></label>
               <textarea name="full_description" value={form.full_description} onChange={handleChange} rows={4}
                 placeholder="Explica en detalle tu proyecto, tecnologías usadas, proceso de desarrollo..."
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+                style={{ ...inputStyle(false), resize: 'none' }} />
             </div>
 
             {/* Asignatura y Año */}
-            <div className="grid grid-cols-2 gap-4">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Asignatura <span className="text-red-500">*</span></label>
+                <label className="authCard__label">Asignatura <span style={{ color: '#dc2626' }}>*</span></label>
                 <select name="subject_id" value={form.subject_id} onChange={handleChange} required
-                  className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white ${fieldErrors.subject_id ? 'border-red-400' : 'border-gray-300'}`}>
+                  style={{ ...inputStyle(fieldErrors.subject_id), appearance: 'auto' }}>
                   <option value="">Selecciona...</option>
                   {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Año</label>
+                <label className="authCard__label">Año</label>
                 <input type="number" name="year" value={form.year} onChange={handleChange} min={1900} max={2100}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  style={inputStyle(false)} />
               </div>
             </div>
 
             {/* Demo */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Enlace al juego / demo <span className="text-gray-400 font-normal">(opcional)</span></label>
+              <label className="authCard__label">Enlace al juego / demo <span style={{ fontWeight: '400', color: '#9ca3af' }}>(opcional)</span></label>
               <input type="url" name="game_url" value={form.game_url} onChange={handleChange}
-                placeholder="https://itch.io/tu-juego"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                placeholder="https://itch.io/tu-juego" style={inputStyle(false)} />
             </div>
 
             {/* Tags */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Etiquetas <span className="text-gray-400 font-normal">(separadas por coma)</span></label>
+              <label className="authCard__label">Etiquetas <span style={{ fontWeight: '400', color: '#9ca3af' }}>(separadas por coma)</span></label>
               <input type="text" name="tags" value={form.tags} onChange={handleChange}
-                placeholder="Unity, C#, Puzzle, 2D..."
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                placeholder="Unity, C#, Puzzle, 2D..." style={inputStyle(false)} />
             </div>
 
             {/* Colaboradores */}
             <CollaboratorsField collaborators={collaborators} onChange={setCollaborators} />
 
-            {/* ── IMÁGENES ── */}
+            {/* Imágenes */}
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-sm font-medium text-gray-700">
-                  Imágenes <span className="text-gray-400 font-normal">(jpg, png, gif, webp · máx. {MAX_IMAGE_MB}MB c/u)</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <label className="authCard__label" style={{ marginBottom: 0 }}>
+                  Imágenes <span style={{ fontWeight: '400', color: '#9ca3af', fontSize: '12px' }}>jpg, png, gif, webp · máx. {MAX_IMAGE_MB}MB</span>
                 </label>
                 {selectedImages > 0 && (
                   <button type="button" onClick={removeSelectedImages}
-                    className="text-xs text-red-600 hover:text-red-700 border border-red-200 hover:bg-red-50 px-2 py-1 rounded-lg transition">
+                    style={{ fontSize: '12px', color: '#dc2626', border: '1px solid #fecaca', background: 'transparent', padding: '4px 10px', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
                     🗑 Eliminar ({selectedImages})
                   </button>
                 )}
               </div>
-              {/* Aviso medidas óptimas */}
-              <p className="text-xs text-blue-600 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 mb-2">
-                💡 <strong>Medidas óptimas:</strong> Imágenes de <strong>1920×1080 px</strong> (16:9) para el slot principal, o <strong>1280×720 px</strong> como mínimo. Evita imágenes muy verticales, se recortarán.
-              </p>
+              <div style={{ fontSize: '12px', color: '#2563eb', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '8px 12px', marginBottom: '8px' }}>
+                💡 <strong>Medidas óptimas:</strong> 1920×1080px (16:9). Mínimo 1280×720px.
+              </div>
               <button type="button" onClick={() => imageInputRef.current?.click()}
-                className="w-full border-2 border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50 rounded-lg py-3 text-sm text-gray-500 hover:text-blue-600 transition">
+                style={{ width: '100%', border: '2px dashed #d1d5db', background: 'transparent', borderRadius: '10px', padding: '14px', fontSize: '14px', color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#385e9d'; e.currentTarget.style.color = '#385e9d' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#d1d5db'; e.currentTarget.style.color = '#6b7280' }}>
                 + Añadir imágenes
               </button>
-              <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp"
-                multiple onChange={handleAddImages} className="hidden" />
+              <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" multiple onChange={handleAddImages} style={{ display: 'none' }} />
               {images.length > 0 && (
                 <>
-                  <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  <div style={{ marginTop: '10px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
                     {images.map(img => (
                       <div key={img.id} onClick={() => toggleImageSelect(img.id)}
-                        className={`relative rounded-lg overflow-hidden cursor-pointer border-2 transition aspect-square ${img.selected ? 'border-red-500 opacity-70' : 'border-transparent hover:border-blue-400'}`}>
-                        <img src={img.preview} alt={img.file.name} className="w-full h-full object-cover" />
+                        style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', cursor: 'pointer', border: `2px solid ${img.selected ? '#dc2626' : 'transparent'}`, aspectRatio: '1', opacity: img.selected ? 0.7 : 1, transition: 'all 0.15s' }}>
+                        <img src={img.preview} alt={img.file.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         {img.selected && (
-                          <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center">
-                            <span className="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">✓</span>
+                          <div style={{ position: 'absolute', inset: 0, background: 'rgba(220,38,38,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ background: '#dc2626', color: '#fff', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '900' }}>✓</span>
                           </div>
                         )}
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs px-1 py-0.5 truncate">{formatBytes(img.file.size)}</div>
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.5)', color: '#fff', fontSize: '10px', padding: '2px 4px' }}>{formatBytes(img.file.size)}</div>
                       </div>
                     ))}
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">{images.length} imagen{images.length !== 1 ? 'es' : ''} · Haz clic para seleccionar y eliminar</p>
+                  <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>{images.length} imagen{images.length !== 1 ? 'es' : ''} · Haz clic para seleccionar y eliminar</p>
                 </>
               )}
             </div>
 
-            {/* ── VÍDEOS ── */}
+            {/* Vídeos */}
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-sm font-medium text-gray-700">
-                  Vídeos <span className="text-gray-400 font-normal">(mp4, avi, mov · máx. {MAX_VIDEO_MB}MB c/u)</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <label className="authCard__label" style={{ marginBottom: 0 }}>
+                  Vídeos <span style={{ fontWeight: '400', color: '#9ca3af', fontSize: '12px' }}>mp4, avi, mov · máx. {MAX_VIDEO_MB}MB</span>
                 </label>
                 {selectedVideos > 0 && (
                   <button type="button" onClick={removeSelectedVideos}
-                    className="text-xs text-red-600 hover:text-red-700 border border-red-200 hover:bg-red-50 px-2 py-1 rounded-lg transition">
+                    style={{ fontSize: '12px', color: '#dc2626', border: '1px solid #fecaca', background: 'transparent', padding: '4px 10px', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
                     🗑 Eliminar ({selectedVideos})
                   </button>
                 )}
               </div>
-              {/* Aviso medidas óptimas */}
-              <p className="text-xs text-blue-600 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 mb-2">
-                💡 <strong>Medidas óptimas:</strong> Vídeos en <strong>1920×1080 px</strong> a <strong>30fps</strong>, formato <strong>MP4 (H.264)</strong> para máxima compatibilidad. Duración recomendada: 1–3 minutos.
-              </p>
+              <div style={{ fontSize: '12px', color: '#2563eb', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '8px 12px', marginBottom: '8px' }}>
+                💡 <strong>Medidas óptimas:</strong> 1920×1080px a 30fps, formato MP4 (H.264). Duración: 1–3 minutos.
+              </div>
               <button type="button" onClick={() => videoInputRef.current?.click()}
-                className="w-full border-2 border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50 rounded-lg py-3 text-sm text-gray-500 hover:text-blue-600 transition">
+                style={{ width: '100%', border: '2px dashed #d1d5db', background: 'transparent', borderRadius: '10px', padding: '14px', fontSize: '14px', color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#385e9d'; e.currentTarget.style.color = '#385e9d' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#d1d5db'; e.currentTarget.style.color = '#6b7280' }}>
                 + Añadir vídeos
               </button>
-              <input ref={videoInputRef} type="file" accept="video/mp4,video/avi,video/quicktime"
-                multiple onChange={handleAddVideos} className="hidden" />
+              <input ref={videoInputRef} type="file" accept="video/mp4,video/avi,video/quicktime" multiple onChange={handleAddVideos} style={{ display: 'none' }} />
               {videos.length > 0 && (
                 <>
-                  <div className="mt-3 space-y-2">
+                  <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {videos.map(v => (
                       <div key={v.id} onClick={() => toggleVideoSelect(v.id)}
-                        className={`flex items-center gap-3 border rounded-lg px-3 py-2 cursor-pointer transition ${v.selected ? 'border-red-400 bg-red-50' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'}`}>
-                        <span className="text-xl shrink-0">{v.selected ? '✓' : '🎬'}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-gray-700 truncate">{v.file.name}</p>
-                          <p className="text-xs text-gray-400">{formatBytes(v.file.size)}</p>
+                        style={{ display: 'flex', alignItems: 'center', gap: '12px', border: `1px solid ${v.selected ? '#fca5a5' : '#e5e7eb'}`, background: v.selected ? '#fef2f2' : '#f9fafb', borderRadius: '10px', padding: '10px 14px', cursor: 'pointer', transition: 'all 0.15s' }}>
+                        <span style={{ fontSize: '20px', flexShrink: 0 }}>{v.selected ? '✓' : '🎬'}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: '14px', color: '#374151', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.file.name}</p>
+                          <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>{formatBytes(v.file.size)}</p>
                         </div>
                       </div>
                     ))}
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">{videos.length} vídeo{videos.length !== 1 ? 's' : ''} · Haz clic para seleccionar y eliminar</p>
+                  <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>{videos.length} vídeo{videos.length !== 1 ? 's' : ''} · Haz clic para seleccionar y eliminar</p>
                 </>
               )}
             </div>
 
             {/* Autorización */}
-            <div className={`border rounded-lg p-4 ${fieldErrors.authorization ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50'}`}>
-              <label className="flex items-start gap-3 cursor-pointer">
+            <div style={{ border: `1px solid ${fieldErrors.authorization ? '#fca5a5' : '#e5e7eb'}`, background: fieldErrors.authorization ? '#fef2f2' : '#f9fafb', borderRadius: '10px', padding: '16px' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
                 <input type="checkbox" name="authorization" checked={form.authorization} onChange={handleChange}
-                  className="mt-0.5 h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" />
-                <span className="text-sm text-gray-700">
-                  <span className="font-medium">Autorizo la publicación de este proyecto</span> en el repositorio académico.
-                  Confirmo que soy autor o tengo permiso de los autores para compartirlo. <span className="text-red-500">*</span>
+                  style={{ marginTop: '2px', width: '16px', height: '16px', flexShrink: 0 }} />
+                <span style={{ fontSize: '14px', color: '#374151' }}>
+                  <strong>Autorizo la publicación de este proyecto</strong> en el repositorio académico.
+                  Confirmo que soy autor o tengo permiso de los autores para compartirlo. <span style={{ color: '#dc2626' }}>*</span>
                 </span>
               </label>
-              {fieldErrors.authorization && <p className="text-red-500 text-xs mt-2 ml-7">{fieldErrors.authorization}</p>}
+              {fieldErrors.authorization && <p style={{ color: '#dc2626', fontSize: '12px', marginTop: '8px', marginLeft: '26px' }}>{fieldErrors.authorization}</p>}
             </div>
 
             <button type="submit" disabled={loading || !form.authorization}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-2.5 rounded-lg text-sm font-medium transition">
+              className="btn btn--primary"
+              style={{ width: '100%', justifyContent: 'center', borderRadius: '10px', padding: '14px', fontSize: '15px', opacity: (loading || !form.authorization) ? 0.5 : 1, cursor: (loading || !form.authorization) ? 'not-allowed' : 'pointer' }}>
               {loading ? 'Enviando solicitud...' : 'Enviar solicitud de publicación'}
             </button>
-            <p className="text-xs text-gray-400 text-center">Tu proyecto será visible una vez que un administrador lo apruebe.</p>
+            <p style={{ fontSize: '12px', color: '#9ca3af', textAlign: 'center', margin: '-8px 0 0' }}>Tu proyecto será visible una vez que un administrador lo apruebe.</p>
+
           </form>
         </div>
-      </div>
+      </main>
+
+      <Footer />
     </div>
   )
 }
