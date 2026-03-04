@@ -27,28 +27,36 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [selectedSubject, setSelectedSubject] = useState('')
-
-  // menú lateral
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-
-  useEffect(() => {
-    // Si te falla por CORS, se quedará vacío. No pasa nada para la UI.
-    api.get('/subjects').then(r => setSubjects(r.data)).catch(() => setSubjects([]))
-    fetchProjects()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   const fetchProjects = async (params = {}) => {
     setLoading(true)
     try {
       const res = await api.get('/projects', { params })
-      setProjects(res.data.data)
+      const data = res.data.data
+      setProjects(data)
+
+      // Extraer asignaturas únicas de los proyectos
+      const uniqueSubjects = []
+      const seen = new Set()
+      data.forEach(p => {
+        if (p.subject && !seen.has(p.subject.id)) {
+          seen.add(p.subject.id)
+          uniqueSubjects.push({ id: p.subject.id, name: p.subject.name })
+        }
+      })
+      setSubjects(uniqueSubjects)
     } catch (e) {
       setProjects([])
     } finally {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchProjects()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -58,24 +66,11 @@ export default function HomePage() {
     })
   }
 
-  // fallback demo si no hay subjects
-  const subjectList =
-    subjects?.length
-      ? subjects.map(s => ({ id: s.id, name: s.name }))
-      : [
-          { id: 1, name: 'Programación' },
-          { id: 2, name: 'Diseño' },
-          { id: 3, name: 'Bases de Datos' },
-          { id: 4, name: 'IA' },
-          { id: 5, name: 'Redes' },
-        ]
-
   return (
     <div className="page">
       {/* HERO */}
       <header className="hero">
         <div className="hero__inner">
-          {/* Pasamos la función para abrir el menú */}
           <Navbar onOpenMenu={() => setIsMenuOpen(true)} />
 
           <div className="hero__content">
@@ -164,7 +159,7 @@ export default function HomePage() {
         </div>
 
         <div className="sideMenu__list">
-          {subjectList.map(s => (
+          {subjects.map(s => (
             <button
               key={s.id}
               type="button"

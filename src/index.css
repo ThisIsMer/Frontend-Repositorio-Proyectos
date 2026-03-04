@@ -461,16 +461,34 @@ body{
   background: rgba(255,255,255,0.10);
 }
 /* Navbar responsive: en móvil se ocultan los links y se usa el menú */
-@media (max-width: 820px){
-  .siteNav__links{
+@media (max-width: 820px) {
+  .siteNav__links {
+    display: flex;
+    gap: 10px;
+  }
+
+  .siteNav__brand {
+    font-size: 18px;
+  }
+
+  .siteNav__link {
+    font-size: 13px;
+  }
+
+  .hamburgerBtn {
+    padding: 6px 8px;
+    font-size: 16px;
+  }
+
+  .btn {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+}
+
+/* En móvil muy pequeño, oculta los links de texto y deja solo los botones */
+@media (max-width: 480px) {
+  .siteNav__link--hide {
     display: none;
-  }
-
-  .siteNav__brand{
-    font-size: 22px;
-  }
-
-  .hamburgerBtn{
-    padding: 8px 10px;
   }
 }
