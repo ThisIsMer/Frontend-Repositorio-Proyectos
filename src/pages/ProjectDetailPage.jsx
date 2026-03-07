@@ -187,7 +187,6 @@ export default function ProjectDetailPage() {
     <div className="page">
       <Navbar />
       <main className="content userProfile__error">
-        <div className="userProfile__errorIcon">😕</div>
         <p className="userProfile__errorText">{error}</p>
         <Link to="/" className="about__backLink">← Volver al inicio</Link>
       </main>
@@ -219,7 +218,7 @@ export default function ProjectDetailPage() {
             </div>
           ) : (
             <div className="detail__noMedia">
-              <span className="detail__noMediaIcon">📁</span>
+              <span className="detail__noMediaIcon"></span>
             </div>
           )}
 
@@ -266,7 +265,7 @@ export default function ProjectDetailPage() {
               <div className="detail__section">
                 <h2 className="detail__sectionTitle">Demo / Juego</h2>
                 <a href={project.game_url} target="_blank" rel="noopener noreferrer" className="detail__demoBtn">
-                  🎮 Jugar / Ver demo
+                   Jugar / Ver demo
                   <span className="detail__demoUrl">{project.game_url}</span>
                 </a>
               </div>

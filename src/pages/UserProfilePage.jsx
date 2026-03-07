@@ -46,7 +46,7 @@ export default function UserProfilePage() {
     <div className="page">
       <Navbar />
       <main className="content userProfile__error">
-        <div className="userProfile__errorIcon">😕</div>
+        <div className="userProfile__errorIcon"></div>
         <p className="userProfile__errorText">{error}</p>
         <Link to="/" className="about__backLink">← Volver al inicio</Link>
       </main>
@@ -87,7 +87,7 @@ export default function UserProfilePage() {
           {user.email && <p className="profileInfo__email">{user.email}</p>}
           {user.bio && <p className="profileInfo__bio">{user.bio}</p>}
           <div className="profileInfo__pill">
-            📁 {projects.length} proyecto{projects.length !== 1 ? 's' : ''} publicado{projects.length !== 1 ? 's' : ''}
+             {projects.length} proyecto{projects.length !== 1 ? 's' : ''} publicado{projects.length !== 1 ? 's' : ''}
           </div>
         </div>
 
@@ -116,9 +116,9 @@ export default function UserProfilePage() {
                       <div className="thumb">
                         {cover ? (
                           <img src={cover} alt={project.title} className="thumbImg"
-                            onError={e => { e.target.parentNode.innerHTML = '<div class="thumbFallback"><span class="thumbIcon">📁</span></div>' }} />
+                            onError={e => { e.target.parentNode.innerHTML = '<div class="thumbFallback"><span class="thumbIcon"></span></div>' }} />
                         ) : (
-                          <div className="thumbFallback"><span className="thumbIcon">📁</span></div>
+                          <div className="thumbFallback"><span className="thumbIcon"></span></div>
                         )}
                       </div>
                       <div className="cardBody">

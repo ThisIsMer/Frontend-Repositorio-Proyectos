@@ -250,7 +250,7 @@ export default function SubmitProjectPage() {
       <Navbar />
       <main className="content submitSuccess">
         <div className="submitSuccess__card">
-          <div className="submitSuccess__icon">✅</div>
+          <div className="submitSuccess__icon"></div>
           <h2 className="submitSuccess__title">¡Solicitud enviada!</h2>
           <p className="submitSuccess__desc">Tu proyecto ha sido enviado para revisión. Un administrador lo aprobará próximamente.</p>
           <div className="submitSuccess__actions">
@@ -271,7 +271,6 @@ export default function SubmitProjectPage() {
         <div className="hero__inner">
           <div className="hero__content">
             <h1 className="hero__title">Subir Proyecto</h1>
-            <p className="hero__subtitle">Comparte tu trabajo con la comunidad académica</p>
           </div>
         </div>
       </header>
@@ -352,11 +351,11 @@ export default function SubmitProjectPage() {
                 </label>
                 {selectedImages > 0 && (
                   <button type="button" onClick={removeSelectedImages} className="submitForm__removeBtn">
-                    🗑 Eliminar ({selectedImages})
+                     Eliminar ({selectedImages})
                   </button>
                 )}
               </div>
-              <p className="submitForm__tip">💡 <strong>Medidas óptimas:</strong> 1920×1080px (16:9). Mínimo 1280×720px.</p>
+              <p className="submitForm__tip"> <strong>Medidas óptimas:</strong> 1920×1080px (16:9). Mínimo 1280×720px.</p>
               <button type="button" onClick={() => imageInputRef.current?.click()} className="submitForm__dropzone">
                 + Añadir imágenes
               </button>
@@ -392,7 +391,7 @@ export default function SubmitProjectPage() {
                   </button>
                 )}
               </div>
-              <p className="submitForm__tip">💡 <strong>Medidas óptimas:</strong> 1920×1080px a 30fps, formato MP4 (H.264). Duración: 1–3 minutos.</p>
+              <p className="submitForm__tip"> <strong>Medidas óptimas:</strong> 1920×1080px a 30fps, formato MP4 (H.264). Duración: 1–3 minutos.</p>
               <button type="button" onClick={() => videoInputRef.current?.click()} className="submitForm__dropzone">
                 + Añadir vídeos
               </button>

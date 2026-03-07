@@ -144,19 +144,19 @@ export default function HomePage() {
               <div className="hero__activeFilters">
                 {selectedSubject && (
                   <span className="hero__filterPill">
-                    📚 {subjects.find(s => String(s.id) === String(selectedSubject))?.name}
+                     {subjects.find(s => String(s.id) === String(selectedSubject))?.name}
                     <button onClick={() => setSelectedSubject('')} className="hero__filterPillClose">✕</button>
                   </span>
                 )}
                 {selectedYear && (
                   <span className="hero__filterPill">
-                    📅 {selectedYear}
+                     {selectedYear}
                     <button onClick={() => setSelectedYear('')} className="hero__filterPillClose">✕</button>
                   </span>
                 )}
                 {selectedTags.map(tag => (
                   <span key={tag} className="hero__filterPill">
-                    🏷️ {tag}
+                     {tag}
                     <button onClick={() => toggleTag(tag)} className="hero__filterPillClose">✕</button>
                   </span>
                 ))}
@@ -183,7 +183,7 @@ export default function HomePage() {
                       {cover ? (
                         <img src={cover} alt={project.title} className="thumbImg" onError={e => e.currentTarget.remove()} />
                       ) : (
-                        <div className="thumbFallback"><span className="thumbIcon">📁</span></div>
+                        <div className="thumbFallback"><span className="thumbIcon"></span></div>
                       )}
                     </div>
                     <div className="cardBody">

@@ -877,6 +877,41 @@ body {
   position: relative;
   overflow: hidden;
 }
+
+/* Imagen de banner cuando se sube una */
+.profileBanner__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Botón "Cambiar portada" flotante sobre el banner */
+.profileBanner__editBtn {
+  position: absolute;
+  bottom: 12px;
+  right: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  backdrop-filter: blur(4px);
+  transition: background 0.15s;
+  z-index: 2;
+}
+.profileBanner__editBtn:hover {
+  background: rgba(0, 0, 0, 0.65);
+}
+
 .profileBanner__svg {
   position: absolute;
   right: -40px;
@@ -1122,6 +1157,7 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.profileCard__itemTitle:hover { text-decoration: underline; }
 .profileCard__itemMeta {
   font-size: 12px;
   color: #9ca3af;
@@ -1784,6 +1820,10 @@ body {
   text-decoration: none;
   font-weight: 700;
 }
+.detail__footerLink:hover,
+.detail__footerLink:active {
+  text-decoration: underline;
+}
 
 /* ===== ABOUT PAGE ===== */
 .about__section { display: flex; flex-direction: column; gap: 40px; margin-bottom: 40px; }
@@ -1836,7 +1876,15 @@ body {
   color: #6b7280;
   margin: 0;
 }
-.about__backLink { color: #385e9d; text-decoration: none; font-size: 15px; }
+.about__backLink {
+  color: #385e9d;
+  text-decoration: none;
+  font-size: 15px;
+}
+.about__backLink:hover,
+.about__backLink:active {
+  text-decoration: underline;
+}
 .about__backWrap { text-align: center; margin-top: 2rem; }
 .about__authorsText { color: #374151; line-height: 1.7; margin: 0; }
 
@@ -1865,6 +1913,10 @@ body {
   text-decoration: none;
   font-size: 14px;
   font-weight: 700;
+}
+.userProfile__backLink:hover,
+.userProfile__backLink:active {
+  text-decoration: underline;
 }
 .userProfile__empty {
   text-align: center;
@@ -2546,4 +2598,4 @@ body {
 }
 
 /* main layout helper */
-.main { flex: 1; } 
+.main { flex: 1; }

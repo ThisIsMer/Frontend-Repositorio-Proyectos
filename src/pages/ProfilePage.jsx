@@ -139,6 +139,7 @@ function CollaboratorsField({ collaborators, onChange }) {
 export default function ProfilePage() {
   const { user, login } = useAuth()
   const avatarInputRef = useRef(null)
+  const bannerInputRef = useRef(null)
 
   const [projects, setProjects] = useState([])
   const [requests, setRequests] = useState([])
@@ -149,6 +150,8 @@ export default function ProfilePage() {
   const [form, setForm] = useState({ name: user?.name || '', bio: user?.bio || '' })
   const [avatarFile, setAvatarFile] = useState(null)
   const [avatarPreview, setAvatarPreview] = useState(null)
+  const [bannerFile, setBannerFile] = useState(null)
+  const [bannerPreview, setBannerPreview] = useState(null)
   const [saveLoading, setSaveLoading] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -169,7 +172,10 @@ export default function ProfilePage() {
     api.get('/subjects').then(r => setSubjects(r.data)).catch(() => {})
   }, [])
 
-  useEffect(() => () => { if (avatarPreview) URL.revokeObjectURL(avatarPreview) }, [avatarPreview])
+  useEffect(() => () => {
+    if (avatarPreview) URL.revokeObjectURL(avatarPreview)
+    if (bannerPreview) URL.revokeObjectURL(bannerPreview)
+  }, [avatarPreview, bannerPreview])
 
   const handleAvatarChange = (e) => {
     const file = e.target.files[0]
@@ -182,23 +188,35 @@ export default function ProfilePage() {
     setAvatarPreview(URL.createObjectURL(file))
   }
 
+  const handleBannerChange = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    if (!['image/jpeg', 'image/png', 'image/jpg', 'image/webp'].includes(file.type)) { setSaveError('Solo JPG, PNG o WebP.'); return }
+    if (file.size > 8 * 1024 * 1024) { setSaveError('Máximo 8MB para el banner.'); return }
+    setSaveError('')
+    setBannerFile(file)
+    if (bannerPreview) URL.revokeObjectURL(bannerPreview)
+    setBannerPreview(URL.createObjectURL(file))
+    // Open edit form so user can save
+    setEditing(true)
+    setSaveSuccess(false)
+  }
+
   const handleSaveProfile = async (e) => {
     e.preventDefault()
     setSaveLoading(true); setSaveError(''); setSaveSuccess(false)
     try {
-      let res
-      if (avatarFile) {
-        const fd = new FormData()
-        fd.append('_method', 'PUT')
-        fd.append('name', form.name)
-        fd.append('bio', form.bio)
-        fd.append('profile_picture', avatarFile)
-        res = await api.post('/profile', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
-      } else {
-        res = await api.put('/profile', form)
-      }
+      const fd = new FormData()
+      fd.append('_method', 'PUT')
+      fd.append('name', form.name)
+      fd.append('bio', form.bio)
+      if (avatarFile) fd.append('profile_picture', avatarFile)
+      if (bannerFile) fd.append('banner_image', bannerFile)
+      const res = await api.post('/profile', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
       login(res.data.user, localStorage.getItem('token'))
-      setSaveSuccess(true); setEditing(false); setAvatarFile(null); setAvatarPreview(null)
+      setSaveSuccess(true); setEditing(false)
+      setAvatarFile(null); setAvatarPreview(null)
+      setBannerFile(null); setBannerPreview(null)
     } catch (err) {
       setSaveError(err.response?.data?.message || 'Error al guardar el perfil.')
     } finally { setSaveLoading(false) }
@@ -208,6 +226,8 @@ export default function ProfilePage() {
     setEditing(false); setSaveError('')
     setAvatarFile(null)
     if (avatarPreview) { URL.revokeObjectURL(avatarPreview); setAvatarPreview(null) }
+    setBannerFile(null)
+    if (bannerPreview) { URL.revokeObjectURL(bannerPreview); setBannerPreview(null) }
     setForm({ name: user?.name || '', bio: user?.bio || '' })
   }
 
@@ -282,6 +302,7 @@ export default function ProfilePage() {
   }[type] || type)
 
   const currentAvatar = avatarPreview || avatarUrl(user?.profile_picture)
+  const currentBanner = bannerPreview || avatarUrl(user?.banner_image)
 
   return (
     <div className="page">
@@ -291,10 +312,28 @@ export default function ProfilePage() {
         {/* Banner + Avatar */}
         <div className="profileBanner__wrap">
           <div className="profileBanner">
+            {currentBanner && (
+              <img src={currentBanner} alt="Banner" className="profileBanner__img" />
+            )}
             <svg className="profileBanner__svg" viewBox="0 0 420 420">
               <circle cx="300" cy="100" r="220" fill="white" />
               <circle cx="180" cy="340" r="140" fill="white" />
             </svg>
+            {/* Banner edit button — always visible */}
+            <button
+              type="button"
+              className="profileBanner__editBtn"
+              onClick={() => bannerInputRef.current?.click()}
+            >
+              🖼️ Cambiar portada
+            </button>
+            <input
+              ref={bannerInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleBannerChange}
+              style={{ display: 'none' }}
+            />
           </div>
           <div className="profileAvatar__anchor">
             <div className="profileAvatar">
@@ -337,7 +376,8 @@ export default function ProfilePage() {
               <h3 className="profileEditForm__title">Editar perfil</h3>
               {saveError && <div className="profileEditForm__error">{saveError}</div>}
               <form onSubmit={handleSaveProfile} className="profileEditForm__fields">
-                {avatarFile && <p className="profileEditForm__avatarHint">✓ Nueva foto: {avatarFile.name}</p>}
+                {avatarFile && <p className="profileEditForm__avatarHint">✓ Nueva foto de perfil: {avatarFile.name}</p>}
+                {bannerFile && <p className="profileEditForm__avatarHint">✓ Nueva portada: {bannerFile.name}</p>}
                 <div>
                   <label className="authCard__label">Nombre</label>
                   <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="authCard__input" placeholder="Tu nombre completo" />
