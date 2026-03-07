@@ -17,7 +17,6 @@ function isEmail(str) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str.trim())
 }
 
-// ── Iconos SVG inline ─────────────────────────────────────────────────────────
 const IconEdit = ({ size = 13 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -37,13 +36,6 @@ const IconCamera = ({ size = 13 }) => (
     <circle cx="12" cy="13" r="4"/>
   </svg>
 )
-const IconImage = ({ size = 13 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="18" height="18" rx="2"/>
-    <circle cx="8.5" cy="8.5" r="1.5"/>
-    <polyline points="21 15 16 10 5 21"/>
-  </svg>
-)
 const IconWarning = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
     <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
@@ -51,7 +43,7 @@ const IconWarning = () => (
   </svg>
 )
 
-// ── Colaborador chip ──────────────────────────────────────────────────────────
+
 function CollaboratorChip({ collab, onRemove }) {
   const cls = collab.type === 'user' ? 'collab__chip collab__chip--user' : 'collab__chip collab__chip--text'
   return (
@@ -68,7 +60,6 @@ function CollaboratorChip({ collab, onRemove }) {
   )
 }
 
-// ── Campo colaboradores ───────────────────────────────────────────────────────
 function CollaboratorsField({ collaborators, onChange }) {
   const [input, setInput] = useState('')
   const [searching, setSearching] = useState(false)
@@ -175,11 +166,10 @@ function CollaboratorsField({ collaborators, onChange }) {
   )
 }
 
-// ── Página principal ──────────────────────────────────────────────────────────
+
 export default function ProfilePage() {
   const { user, login } = useAuth()
   const avatarInputRef = useRef(null)
-  const bannerInputRef = useRef(null)
 
   const [projects, setProjects] = useState([])
   const [requests, setRequests] = useState([])
@@ -190,8 +180,6 @@ export default function ProfilePage() {
   const [form, setForm] = useState({ name: user?.name || '', bio: user?.bio || '' })
   const [avatarFile, setAvatarFile] = useState(null)
   const [avatarPreview, setAvatarPreview] = useState(null)
-  const [bannerFile, setBannerFile] = useState(null)
-  const [bannerPreview, setBannerPreview] = useState(null)
   const [saveLoading, setSaveLoading] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -214,8 +202,7 @@ export default function ProfilePage() {
 
   useEffect(() => () => {
     if (avatarPreview) URL.revokeObjectURL(avatarPreview)
-    if (bannerPreview) URL.revokeObjectURL(bannerPreview)
-  }, [avatarPreview, bannerPreview])
+  }, [avatarPreview])
 
   const handleAvatarChange = (e) => {
     const file = e.target.files[0]
@@ -228,18 +215,6 @@ export default function ProfilePage() {
     setAvatarPreview(URL.createObjectURL(file))
   }
 
-  const handleBannerChange = (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-    if (!['image/jpeg', 'image/png', 'image/jpg', 'image/webp'].includes(file.type)) { setSaveError('Solo JPG, PNG o WebP.'); return }
-    if (file.size > 8 * 1024 * 1024) { setSaveError('Máximo 8MB para el banner.'); return }
-    setSaveError('')
-    setBannerFile(file)
-    if (bannerPreview) URL.revokeObjectURL(bannerPreview)
-    setBannerPreview(URL.createObjectURL(file))
-    setSaveSuccess(false)
-  }
-
   const handleSaveProfile = async (e) => {
     e.preventDefault()
     setSaveLoading(true); setSaveError(''); setSaveSuccess(false)
@@ -249,13 +224,10 @@ export default function ProfilePage() {
       fd.append('name', form.name)
       fd.append('bio', form.bio)
       if (avatarFile) fd.append('profile_picture', avatarFile)
-      // banner_image: pendiente de soporte en backend
-      // if (bannerFile) fd.append('banner_image', bannerFile)
       const res = await api.post('/profile', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
       login(res.data.user, localStorage.getItem('token'))
       setSaveSuccess(true); setEditing(false)
       setAvatarFile(null); setAvatarPreview(null)
-      setBannerFile(null); setBannerPreview(null)
     } catch (err) {
       setSaveError(err.response?.data?.message || 'Error al guardar el perfil.')
     } finally { setSaveLoading(false) }
@@ -265,8 +237,6 @@ export default function ProfilePage() {
     setEditing(false); setSaveError('')
     setAvatarFile(null)
     if (avatarPreview) { URL.revokeObjectURL(avatarPreview); setAvatarPreview(null) }
-    setBannerFile(null)
-    if (bannerPreview) { URL.revokeObjectURL(bannerPreview); setBannerPreview(null) }
     setForm({ name: user?.name || '', bio: user?.bio || '' })
   }
 
@@ -341,7 +311,6 @@ export default function ProfilePage() {
   }[type] || type)
 
   const currentAvatar = avatarPreview || avatarUrl(user?.profile_picture)
-  const currentBanner = bannerPreview || avatarUrl(user?.banner_image)
 
   return (
     <div className="page">
@@ -351,20 +320,10 @@ export default function ProfilePage() {
         {/* Banner + Avatar */}
         <div className="profileBanner__wrap">
           <div className="profileBanner">
-            {currentBanner && (
-              <img src={currentBanner} alt="Banner" className="profileBanner__img" />
-            )}
             <svg className="profileBanner__svg" viewBox="0 0 420 420">
               <circle cx="300" cy="100" r="220" fill="white" />
               <circle cx="180" cy="340" r="140" fill="white" />
             </svg>
-            <input
-              ref={bannerInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={handleBannerChange}
-              style={{ display: 'none' }}
-            />
           </div>
           <div className="profileAvatar__anchor">
             <div className="profileAvatar">
@@ -421,36 +380,6 @@ export default function ProfilePage() {
                   </p>
                 )}
 
-                {/* Cambiar portada */}
-                <div className="profileEditForm__bannerRow">
-                  <div className="profileEditForm__bannerPreview">
-                    {bannerPreview
-                      ? <img src={bannerPreview} alt="Vista previa portada" />
-                      : <span className="profileEditForm__bannerEmpty">Sin portada</span>
-                    }
-                  </div>
-                  <div className="profileEditForm__bannerActions">
-                    <button type="button" className="profileEditForm__bannerBtn"
-                      onClick={() => bannerInputRef.current?.click()}>
-                      <IconImage size={12} />
-                      {bannerFile ? 'Cambiar portada' : 'Añadir portada'}
-                    </button>
-                    {bannerFile && (
-                      <>
-                        <span className="profileEditForm__bannerName">{bannerFile.name}</span>
-                        <button type="button" className="profileEditForm__bannerRemove"
-                          onClick={() => {
-                            setBannerFile(null)
-                            if (bannerPreview) { URL.revokeObjectURL(bannerPreview); setBannerPreview(null) }
-                          }}>
-                          Quitar
-                        </button>
-                      </>
-                    )}
-                    <span className="profileEditForm__bannerNote">JPG, PNG o WebP · máx. 8MB</span>
-                  </div>
-                </div>
-
                 <div>
                   <label className="authCard__label">Nombre</label>
                   <input type="text" value={form.name}
@@ -489,24 +418,25 @@ export default function ProfilePage() {
             {loadingProjects ? (
               <p style={{ color: '#9ca3af', fontSize: 14, padding: '8px 0' }}>Cargando proyectos...</p>
             ) : projects.length === 0 ? (
-              <div className="profileCard__empty">
-                <p className="profileCard__emptyText">No tienes proyectos publicados aún.</p>
-                <Link to="/submit" className="btn btn--primary btn--sm">+ Subir proyecto</Link>
-              </div>
+              <p className="profileCard__empty">No has publicado ningún proyecto aún.</p>
             ) : (
               <div className="profileCard__list">
                 {projects.map(project => (
                   <div key={project.id} className="profileCard__item">
                     <div className="profileCard__itemInfo">
-                      <Link to={`/projects/${project.id}`} className="profileCard__itemTitle">{project.title}</Link>
-                      <p className="profileCard__itemMeta">{project.subject?.name} · {project.year}</p>
+                      <span className="profileCard__itemTitle">{project.title}</span>
+                      {project.subject && (
+                        <p className="profileCard__itemMeta">{project.subject.name}{project.year ? ` · ${project.year}` : ''}</p>
+                      )}
                     </div>
                     <div className="profileCard__itemActions">
-                      <button onClick={() => openEdit(project)} className="profileCard__editBtn">
-                        <IconEdit size={11} /> Editar
+                      <button className="profileCard__editBtn" onClick={() => openEdit(project)}>
+                        <IconEdit size={11} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                        Editar
                       </button>
-                      <button onClick={() => setDeletingProject(project)} className="profileCard__deleteBtn">
-                        <IconTrash size={11} /> Eliminar
+                      <button className="profileCard__deleteBtn" onClick={() => setDeletingProject(project)}>
+                        <IconTrash size={11} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                        Eliminar
                       </button>
                     </div>
                   </div>
