@@ -120,7 +120,7 @@ function CollaboratorsField({ collaborators, onChange }) {
 export default function ProfilePage() {
   const { user, login } = useAuth()
   const avatarInputRef  = useRef(null)
-  const bannerInputRef  = useRef(null)   // ← nuevo
+  const bannerInputRef  = useRef(null)
 
   const [projects, setProjects]               = useState([])
   const [requests, setRequests]               = useState([])
@@ -130,25 +130,22 @@ export default function ProfilePage() {
   const [editing, setEditing]           = useState(false)
   const [form, setForm]                 = useState({ name: user?.name || '', bio: user?.bio || '' })
 
-  // Foto de perfil
-  const [avatarFile, setAvatarFile]         = useState(null)
-  const [avatarPreview, setAvatarPreview]   = useState(null)
-
-  // Banner
-  const [bannerFile, setBannerFile]         = useState(null)   // ← nuevo
-  const [bannerPreview, setBannerPreview]   = useState(null)   // ← nuevo
+  const [avatarFile, setAvatarFile]       = useState(null)
+  const [avatarPreview, setAvatarPreview] = useState(null)
+  const [bannerFile, setBannerFile]       = useState(null)
+  const [bannerPreview, setBannerPreview] = useState(null)
 
   const [saveLoading, setSaveLoading]   = useState(false)
   const [saveError, setSaveError]       = useState('')
   const [saveSuccess, setSaveSuccess]   = useState(false)
 
   // Modal editar proyecto
-  const [editingProject, setEditingProject]   = useState(null)
-  const [editForm, setEditForm]               = useState({})
+  const [editingProject, setEditingProject]       = useState(null)
+  const [editForm, setEditForm]                   = useState({})
   const [editCollaborators, setEditCollaborators] = useState([])
-  const [editLoading, setEditLoading]         = useState(false)
-  const [editError, setEditError]             = useState('')
-  const [subjects, setSubjects]               = useState([])
+  const [editLoading, setEditLoading]             = useState(false)
+  const [editError, setEditError]                 = useState('')
+  const [subjects, setSubjects]                   = useState([])
 
   // Modal confirmar eliminar
   const [deletingProject, setDeletingProject] = useState(null)
@@ -195,14 +192,13 @@ export default function ProfilePage() {
     setSaveLoading(true); setSaveError(''); setSaveSuccess(false)
     try {
       let res
-      // Si hay algún archivo usamos multipart, si no JSON
       if (avatarFile || bannerFile) {
         const fd = new FormData()
         fd.append('_method', 'PUT')
         fd.append('name', form.name)
         fd.append('bio', form.bio)
         if (avatarFile) fd.append('profile_picture', avatarFile)
-        if (bannerFile) fd.append('profile_banner',  bannerFile)
+        if (bannerFile) fd.append('profile_banner', bannerFile)
         res = await api.post('/profile', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
       } else {
         res = await api.put('/profile', form)
@@ -298,9 +294,9 @@ export default function ProfilePage() {
     create: 'Crear proyecto', update: 'Editar proyecto', delete: 'Eliminar proyecto'
   }[type] || type)
 
-  const currentAvatar  = avatarPreview  || avatarUrl(user?.profile_picture)
-  const currentBanner  = bannerPreview  || avatarUrl(user?.profile_banner)   // ← nuevo
-  const initials       = (user?.name || user?.email || '?').charAt(0).toUpperCase()
+  const currentAvatar = avatarPreview || avatarUrl(user?.profile_picture)
+  const currentBanner = bannerPreview || avatarUrl(user?.profile_banner)
+  const initials      = (user?.name || user?.email || '?').charAt(0).toUpperCase()
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -308,21 +304,31 @@ export default function ProfilePage() {
       <div className="max-w-4xl mx-auto px-4 py-10 space-y-8">
 
         {/* ── Mi Perfil ── */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm" style={{ overflow: 'hidden' }}>
 
           {/* ── Banner ── */}
-          <div className="relative h-36 bg-gradient-to-r from-slate-700 to-blue-800 overflow-hidden">
-            {currentBanner
-              ? <img src={currentBanner} alt="Banner" className="w-full h-full object-cover" />
-              : <div className="w-full h-full" />}
-
-            {/* Botón editar banner (siempre visible, no solo en modo edición) */}
+          <div style={{
+            position: 'relative',
+            height: '144px',
+            overflow: 'hidden',
+            background: currentBanner ? 'none' : 'linear-gradient(to right, #334155, #1e3a8a)',
+          }}>
+            {currentBanner && (
+              <img src={currentBanner} alt="Banner"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            )}
             {editing && (
               <button
                 type="button"
                 onClick={() => bannerInputRef.current?.click()}
-                className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition"
-                title="Cambiar banner"
+                style={{
+                  position: 'absolute', top: '8px', right: '8px',
+                  background: 'rgba(0,0,0,0.55)', color: 'white',
+                  border: 'none', borderRadius: '8px',
+                  padding: '6px 12px', fontSize: '12px',
+                  cursor: 'pointer', display: 'flex',
+                  alignItems: 'center', gap: '6px',
+                }}
               >
                 🖼 Cambiar banner
               </button>
@@ -341,7 +347,11 @@ export default function ProfilePage() {
               )}
             </div>
 
-            {saveSuccess && <div className="bg-green-50 border border-green-200 text-green-700 text-sm p-3 rounded-lg mb-4">Perfil actualizado correctamente.</div>}
+            {saveSuccess && (
+              <div className="bg-green-50 border border-green-200 text-green-700 text-sm p-3 rounded-lg mb-4">
+                Perfil actualizado correctamente.
+              </div>
+            )}
 
             {editing ? (
               <form onSubmit={handleSaveProfile} className="space-y-5">
@@ -349,7 +359,7 @@ export default function ProfilePage() {
 
                 {/* Banner info */}
                 <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-600 flex items-center gap-2">
-                  🖼 <span>Haz clic en <strong>"Cambiar banner"</strong> en la imagen de arriba para actualizar el banner de perfil.</span>
+                  <span>🖼 Haz clic en <strong>"Cambiar banner"</strong> en la imagen de arriba para actualizarlo.</span>
                   {bannerFile && <span className="text-green-600 ml-auto">✓ {bannerFile.name}</span>}
                 </div>
 
